@@ -1,3 +1,7 @@
+//  AVR-IoT support heavily inspired by https://github.com/zst123/avr-iot-medical-storage-monitor
+#ifndef _AVR_IOT_H
+#define _AVR_IOT_H
+
 // LEDs
 #define LED_RED           (PIN_PD0)
 #define LED_YELLOW        (PIN_PD1)
@@ -20,3 +24,5 @@
 #define PIN_I2C_SDA       (PIN_PA2)
 #define PIN_I2C_SCL       (PIN_PA3)
 #define ADDRESS_I2C_TEMPERATURE 0x18
+
+#endif //_AVR_IOT_H

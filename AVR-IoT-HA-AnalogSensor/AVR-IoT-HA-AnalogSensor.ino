@@ -1,12 +1,13 @@
 /*
   AVR-IoT Home Assistant MQTT Client
+
  */
 
 #include <SPI.h>
-#include <WiFi101.h>
+#include <WiFi101.h> // Need to library WiFi101 by Arduino
+#include <ArduinoHA.h> // Need to library home-assistant-integration by David Chyrzynski
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
-#include <ArduinoHA.h>
 
 // Initialize the Wifi client library for the winc
 WiFiClient client;
