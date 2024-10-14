@@ -3,12 +3,14 @@
 
   Using MegaCoreX for ATmega4808 support
  */
-
+#include <Wire.h>
 #include <SPI.h>
-#include <WiFi101.h> // Need to library WiFi101 by Arduino
-#include <ArduinoHA.h> // Need to library home-assistant-integration by David Chyrzynski
+#include <WiFi101.h> // Need library WiFi101 by Arduino
+#include <ArduinoHA.h> // Need library home-assistant-integration by David Chyrzynski
+#include "Adafruit_MCP9808.h" // Need library Adafruit MCP9808 Library by Adafruit
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
+
 
 // Initialize the Wifi client library for the winc
 WiFiClient client;
@@ -27,12 +29,16 @@ unsigned long lastUpdateAt = 0;
 
 // Initialize the HA device(s)
 // "iotLightSensor" is unique ID of the sensor
-HASensorNumber analogSensor("iotLightSensor", HASensorNumber::PrecisionP0);
+HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
+HASensorNumber temperatureSensor("iotTempsSensor", HASensorNumber::PrecisionP1);
 
 // You can also specify the precision of the sensor by providing the second argument to the constructor as follows:
-// HASensorNumber analogSensor("myAnalogInput", HASensorNumber::PrecisionP1);
-// HASensorNumber analogSensor("myAnalogInput", HASensorNumber::PrecisionP2);
-// HASensorNumber analogSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP1);
+// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
+// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+
+// Create the MCP9808 temperature sensor object
+Adafruit_MCP9808 mcp9808 = Adafruit_MCP9808();
 
 void setup()
 {
@@ -46,15 +52,21 @@ void setup()
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
 
+  SerialCOM.begin(115200);
+  
   WiFi.setPins(
     PIN_WIFI_CS,
     PIN_WIFI_IRQ,
     PIN_WIFI_RST,
     PIN_WIFI_EN
   );
+  
+  if (!mcp9808.begin(ADDRESS_I2C_MCP9808))
+  {
+    SerialCOM.print("Couldn't find MCP9808!");
+    digitalWrite(LED_ERROR, LOW);
+  }
 
-  //Initialize serial and wait for port to open:
-  SerialCOM.begin(115200);
   //while (!SerialCOM) {
   //  ; // wait for serial port to connect. Needed for native USB port only
   //}
@@ -77,11 +89,14 @@ void setup()
   device.setName("AVR-IoT");
   device.setSoftwareVersion("1.0.0");
 
-  // Configure sensor
-  analogSensor.setIcon("mdi:brightness-percent");
-  analogSensor.setName("Brightness");
-  analogSensor.setUnitOfMeasurement("%");
-
+  // Configure sensors
+  brightnessSensor.setIcon("mdi:brightness-percent");
+  brightnessSensor.setName("Brightness");
+  brightnessSensor.setUnitOfMeasurement("%");
+  temperatureSensor.setIcon("mdi:thermometer");
+  temperatureSensor.setName("Temperature");
+  temperatureSensor.setUnitOfMeasurement("°C");
+  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
@@ -100,11 +115,14 @@ void loop() {
           uint16_t reading = analogRead(PIN_LIGHT_SENSOR);
           float voltage = reading * 100.f / 1023.f; //Get percent of maximum value (1023)
     
-          analogSensor.setValue(voltage);
+          brightnessSensor.setValue(voltage);
+          temperatureSensor.setValue(mcp9808.readTempC());
           lastUpdateAt = millis();
     
-          // you can reset the sensor as follows:
-          // analogSensor.setValue(nullptr);
+          // you can reset the sensors as follows:
+          // brightnessSensor.setValue(nullptr);
+          // temperatureSensor.setValue(nullptr);
+          
           digitalWrite(LED_DATA, HIGH);
       }
     }
