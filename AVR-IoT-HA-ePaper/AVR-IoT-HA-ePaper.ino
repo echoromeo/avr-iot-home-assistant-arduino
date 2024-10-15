@@ -1,11 +1,12 @@
 /*
-  AVR-IoT Home Assistant MQTT Client
+  AVR-IoT Home Assistant MQTT Client with e-Paper
 
   Using MegaCoreX by MCUdude for ATmega4808 support
   Libraries:
   * WiFi101 by Arduino
   * home-assistant-integration by David Chyrzynski
   * Adafruit MCP9808 Library by Adafruit
+  * waveshare e-Paper repo: https://github.com/waveshareteam/e-Paper/tree/master/Arduino
 
  */
 #include <Wire.h>
@@ -15,7 +16,9 @@
 #include "Adafruit_MCP9808.h"
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
-
+#include "epd4in2.h"
+#include "imagedata.h"
+#include "epdpaint.h"
 
 // Wifi client stuff for the winc1510
 WiFiClient client;
@@ -41,6 +44,11 @@ unsigned long lastUpdateAt = 0;
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP1);
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+
+// ePaper stuff
+Epd epd;
+#define COLORED     0
+#define UNCOLORED   1
 
 void setup()
 {
@@ -79,6 +87,40 @@ void setup()
   //while (!SerialCOM) {
   //  ; // wait for serial port to connect. Must be commented out if not connected to PC
   //}
+
+  if (epd.Init() != 0) {
+    SerialCOM.print("e-Paper init failed");
+    digitalWrite(LED_ERROR, LOW);
+  }
+  else
+  {
+  	SerialCOM.print("e-Paper online");
+  }
+
+  // large block of text
+  epd.ClearFrame();
+    /**
+    * Due to RAM not enough in Arduino UNO, a frame buffer is not allowed.
+    * In this case, a smaller image buffer is allocated and you have to 
+    * update a partial display several times.
+    * 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
+    */
+  unsigned char image[1500];
+  Paint paint(image, 400, 28);    //width should be the multiple of 8 
+
+  paint.Clear(UNCOLORED);
+  paint.DrawStringAt(0, 0, "e-Paper Demo", &Font24, COLORED);
+  epd.SetPartialWindow(paint.GetImage(), 100, 40, paint.GetWidth(), paint.GetHeight());
+
+  paint.Clear(COLORED);
+  paint.DrawStringAt(100, 2, "Hello world", &Font24, UNCOLORED);
+  epd.SetPartialWindow(paint.GetImage(), 0, 64, paint.GetWidth(), paint.GetHeight());
+
+  /* This displays the data from the SRAM in e-Paper module */
+  epd.DisplayFrame();
+
+  SerialCOM.print("done\n");
+
 
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
