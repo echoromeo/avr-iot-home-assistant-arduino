@@ -5,7 +5,6 @@
   Libraries:
   * WiFi101 by Arduino
   * home-assistant-integration by David Chyrzynski
-  * Adafruit MCP9808 Library by Adafruit
   * waveshare e-Paper repo: https://github.com/waveshareteam/e-Paper/tree/master/Arduino
 
  */
@@ -13,7 +12,6 @@
 #include <SPI.h>
 #include <WiFi101.h>
 #include <ArduinoHA.h>
-#include "Adafruit_MCP9808.h"
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
 #include "epd4in2.h"
@@ -34,19 +32,38 @@ HADevice device(mac, sizeof(mac));
 HAMqtt mqtt(client, device);
 
 // Home Assistant entities stuff
-// "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
-HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
-HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
-Adafruit_MCP9808 mcp9808 = Adafruit_MCP9808();
+// "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
+HANumber number("iotNumberOne", HANumber::PrecisionP1);
 unsigned long lastUpdateAt = 0;
 
-// You can also specify the precision of the sensor by providing the second argument to the constructor as follows:
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP1);
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+// void onNumberCommand(HANumeric number, HANumber* sender)
+// {
+//     if (!number.isSet()) {
+//         // the reset command was send by Home Assistant
+//     } else {
+//         // you can do whatever you want with the number as follows:
+//         // int8_t numberInt8 = number.toInt8();
+//         // int16_t numberInt16 = number.toInt16();
+//         // int32_t numberInt32 = number.toInt32();
+//         // uint8_t numberUInt8 = number.toUInt8();
+//         // uint16_t numberUInt16 = number.toUInt16();
+//         // uint32_t numberUInt32 = number.toUInt32();
+//         float numberFloat = number.toFloat();
+//     }
+
+//     sender->setState(number); // report the selected option back to the HA panel
+// }
 
 // ePaper stuff
 Epd epd;
+/**
+* Due to RAM not enough in Arduino UNO, a frame buffer is not allowed.
+* In this case, a smaller image buffer is allocated and you have to 
+* update a partial display several times.
+* 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
+*/
+unsigned char image[1500];
+Paint paint(image, 400, 28);    //width should be the multiple of 8 
 #define COLORED     0
 #define UNCOLORED   1
 
@@ -72,17 +89,6 @@ void setup()
     PIN_WIFI_RST,
     PIN_WIFI_EN
   );
-  
-  // Initialize MCP9808 sensor
-  if (mcp9808.begin(ADDRESS_I2C_MCP9808))
-  {
-    SerialCOM.print("MCP9808 online");
-  }
-  else
-  {
-    SerialCOM.print("Couldn't find MCP9808!");
-    digitalWrite(LED_ERROR, LOW);
-  }
 
   //while (!SerialCOM) {
   //  ; // wait for serial port to connect. Must be commented out if not connected to PC
@@ -95,32 +101,8 @@ void setup()
   else
   {
   	SerialCOM.print("e-Paper online");
+    updateEpd();
   }
-
-  // large block of text
-  epd.ClearFrame();
-    /**
-    * Due to RAM not enough in Arduino UNO, a frame buffer is not allowed.
-    * In this case, a smaller image buffer is allocated and you have to 
-    * update a partial display several times.
-    * 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
-    */
-  unsigned char image[1500];
-  Paint paint(image, 400, 28);    //width should be the multiple of 8 
-
-  paint.Clear(UNCOLORED);
-  paint.DrawStringAt(0, 0, "e-Paper Demo", &Font24, COLORED);
-  epd.SetPartialWindow(paint.GetImage(), 100, 40, paint.GetWidth(), paint.GetHeight());
-
-  paint.Clear(COLORED);
-  paint.DrawStringAt(100, 2, "Hello world", &Font24, UNCOLORED);
-  epd.SetPartialWindow(paint.GetImage(), 0, 64, paint.GetWidth(), paint.GetHeight());
-
-  /* This displays the data from the SRAM in e-Paper module */
-  epd.DisplayFrame();
-
-  SerialCOM.print("done\n");
-
 
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
@@ -146,13 +128,24 @@ void setup()
   device.setName("AVR-IoT");
   device.setSoftwareVersion("1.0.0");
 
-  // Configure Home Assistant sensors
-  brightnessSensor.setIcon("mdi:brightness-percent");
-  brightnessSensor.setName("Brightness");
-  brightnessSensor.setUnitOfMeasurement("%");
-  temperatureSensor.setIcon("mdi:thermometer");
-  temperatureSensor.setName("Temperature");
-  temperatureSensor.setUnitOfMeasurement("°C");
+  // Configure Home Assistant sensor
+  // number.onCommand(onNumberCommand);
+
+  // Optional configuration
+  number.setIcon("mdi:home");
+  number.setName("My number");
+  // number.setMin(1); // can be float if precision is set via the constructor
+  // number.setMax(100); // can be float if precision is set via the constructor
+  // number.setStep(0.5f); // minimum step: 0.001f
+  // number.setMode(HANumber::ModeBox);
+  // number.setMode(HANumber::ModeSlider);
+
+  // You can set retain flag for the HA commands
+  number.setRetain(true);
+
+  // You can also enable optimistic mode for the HASelect.
+  // In this mode you won't need to report state back to the HA when commands are executed.
+  number.setOptimistic(true);
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
@@ -171,17 +164,12 @@ void loop() {
     {
       digitalWrite(LED_CONN, LOW);
       
-      // Update sensor data every 10 seconds
-      if ((millis() - lastUpdateAt) > 10000) {
+      // Update sensor data every 60 seconds
+      if ((millis() - lastUpdateAt) > 60000) {
           digitalWrite(LED_DATA, LOW);
        
-          brightnessSensor.setValue(readLightPct());
-          temperatureSensor.setValue(mcp9808.readTempC());
+          updateEpd();
           lastUpdateAt = millis();
-    
-          // you can reset the sensors as follows:
-          // brightnessSensor.setValue(nullptr);
-          // temperatureSensor.setValue(nullptr);
           
           digitalWrite(LED_DATA, HIGH);
       }
@@ -199,6 +187,26 @@ void loop() {
   }
 }
 
+void updateEpd() {
+
+  epd.ClearFrame();
+
+  paint.Clear(UNCOLORED);
+  paint.DrawStringAt(0, 0, "Flash full?", &Font24, COLORED);
+  epd.SetPartialWindow(paint.GetImage(), 100, 40, paint.GetWidth(), paint.GetHeight());
+
+  paint.Clear(COLORED);
+
+  // Convert float to string
+  // dtostrf(float, width, precision, buffer)
+  char myString[10]; // Buffer to hold the resulting string
+  dtostrf(number.getCurrentState().toFloat(), 3, 1, myString);
+  paint.DrawStringAt(100, 2, myString, &Font24, UNCOLORED);
+  epd.SetPartialWindow(paint.GetImage(), 0, 64, paint.GetWidth(), paint.GetHeight());
+
+  /* This displays the data from the SRAM in e-Paper module */
+  epd.DisplayFrame();
+}
 
 void printWiFiStatus() {
   // print the SSID of the network you're attached to:
