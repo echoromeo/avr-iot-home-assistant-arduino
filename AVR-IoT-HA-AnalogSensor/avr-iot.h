@@ -54,7 +54,10 @@
 
 // TEMT6000
 #define PIN_LIGHT_SENSOR  (PIN_PD5) 
-
+float readLightPct(void) {
+  //Get percent of maximum value (1023)
+  return analogRead(PIN_LIGHT_SENSOR) * 100.f / 1023.f;
+}
 // MCP9808
 #define ADDRESS_I2C_MCP9808 0x18
 #define PIN_MCP9808_ALERT   (PIN_PC2)
