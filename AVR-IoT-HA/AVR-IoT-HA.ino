@@ -42,7 +42,6 @@ unsigned long lastUpdateAt = 0;
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
 
-
 void setup()
 {
   // Configure LEDs off
@@ -55,8 +54,10 @@ void setup()
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
 
+   // Initialize serial communication for debugging
   SerialCOM.begin(115200);
   
+  // Set WiFi module pins
   WiFi.setPins(
     PIN_WIFI_CS,
     PIN_WIFI_IRQ,
@@ -64,6 +65,7 @@ void setup()
     PIN_WIFI_EN
   );
   
+  // Initialize MCP9808 sensor
   if (mcp9808.begin(ADDRESS_I2C_MCP9808))
   {
     SerialCOM.print("MCP9808 online");
@@ -98,11 +100,11 @@ void setup()
     }
   }
 
-  // Set HA device's details
+  // Set Home Assistant device details
   device.setName("AVR-IoT");
   device.setSoftwareVersion("1.0.0");
 
-  // Configure HA sensors
+  // Configure Home Assistant sensors
   brightnessSensor.setIcon("mdi:brightness-percent");
   brightnessSensor.setName("Brightness");
   brightnessSensor.setUnitOfMeasurement("%");
@@ -110,22 +112,25 @@ void setup()
   temperatureSensor.setName("Temperature");
   temperatureSensor.setUnitOfMeasurement("°C");
 
-  // Connect to HA  
+  // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
 void loop() {
 
+  // Check if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
   {
 	  digitalWrite(LED_WIFI, LOW);
     mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
     
+    // Check if MQTT is connected
     if (mqtt.isConnected())
     {
       digitalWrite(LED_CONN, LOW);
       
-      if ((millis() - lastUpdateAt) > 10000) { // 10s between updates
+      // Update sensor data every 10 seconds
+      if ((millis() - lastUpdateAt) > 10000) {
           digitalWrite(LED_DATA, LOW);
        
           brightnessSensor.setValue(readLightPct());
@@ -148,8 +153,7 @@ void loop() {
   {
     digitalWrite(LED_WIFI, HIGH);
     digitalWrite(LED_CONN, HIGH);
-
-    digitalWrite(LED_ERROR, LOW); // For now, never turn off the error once enabled
+    digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
   }
 }
 
