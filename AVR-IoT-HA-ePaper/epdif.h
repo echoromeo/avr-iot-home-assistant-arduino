@@ -34,7 +34,7 @@
 #define RST_PIN         (PIN_PA0)
 #define DC_PIN          (PIN_PD6)
 #define CS_PIN          (PIN_PC3)
-#define BUSY_PIN        (PIN_PD5)
+#define BUSY_PIN        (PIN_PD4)
 #define PWR_PIN         (PIN_PD4)
 
 class EpdIf {

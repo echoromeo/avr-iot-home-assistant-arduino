@@ -27,7 +27,7 @@
 #define PIN_SPI_SCK       (PIN_PA6)
 
 // USART COM Port
-#define SerialCOM         Serial3
+#define SerialCOM         Serial2
 #define PIN_CDC_RX        
 #define PIN_CDC_TX        
 
