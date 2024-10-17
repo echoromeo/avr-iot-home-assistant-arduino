@@ -35,6 +35,7 @@ HAMqtt mqtt(client, device);
 // "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
 HANumber tempIn("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
+HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
 unsigned long lastUpdateAt = -30*60000+10000;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
@@ -50,8 +51,10 @@ Epd epd;
 * update a partial display several times.
 * 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
 */
-unsigned char image[1500];
-Paint paint(image, 400, 28);    //width should be the multiple of 8 
+#define EPD_BUFFER_HEIGHT (EPD_HEIGHT / 10)
+unsigned char image[(EPD_WIDTH*EPD_BUFFER_HEIGHT)/8];
+Paint paint(image, EPD_WIDTH, EPD_BUFFER_HEIGHT);    //width should be the multiple of 8 
+
 #define COLORED     0
 #define UNCOLORED   1
 
@@ -88,6 +91,11 @@ void setup()
   }
   else
   {
+    // debug, remove later
+    tempOut.setCurrentState(-1.3f);
+    tempIn.setCurrentState(1.7f);
+    co2In.setCurrentState(611.0f);
+  	
   	//SerialCOM.print("e-Paper online");
     updateEpd();
   }
@@ -116,7 +124,7 @@ void setup()
   device.setName("AVR-IoT eInk");
   device.setSoftwareVersion("1.0.0");
 
-  // Configure Home Assistant sensor
+  // Configure Home Assistant sensor Temperature Indoor
   tempIn.onCommand(onNumberCommand);
 
   // Optional configuration
@@ -135,24 +143,23 @@ void setup()
   // In this mode you won't need to report state back to the HA when commands are executed.
   //tempIn.setOptimistic(true);
 
-  // Configure Home Assistant sensor
+  // Configure Home Assistant sensor Temperature Outdoor
   tempOut.onCommand(onNumberCommand);
-
-  // Optional configuration
   tempOut.setIcon("mdi:thermometer");
   tempOut.setName("Temperature Outdoor");
   tempOut.setMin(-40); // can be float if precision is set via the constructor
   tempOut.setMax(40); // can be float if precision is set via the constructor
   tempOut.setStep(0.1f); // minimum step: 0.001f
   tempOut.setMode(HANumber::ModeBox);
-  // tempIn.setMode(HANumber::ModeSlider);
-
-  // You can set retain flag for the HA commands
   tempOut.setRetain(true);
 
-  // You can also enable optimistic mode for the HASelect.
-  // In this mode you won't need to report state back to the HA when commands are executed.
-  //tempIn.setOptimistic(true);
+  // Configure Home Assistant sensor CO2 Indoor
+  co2In.onCommand(onNumberCommand);
+  co2In.setIcon("mdi:molecule-co2");
+  co2In.setName("CO2 Indoor");
+  co2In.setStep(1.0f); // minimum step: 0.001f
+  co2In.setMode(HANumber::ModeBox);
+  co2In.setRetain(true);
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
@@ -196,46 +203,53 @@ void loop() {
   }
 }
 
+uint8_t countDigits(uint16_t num)
+{
+  uint8_t count = 1;  // everything has at least one digit, right?
+  uint32_t comparison = 10;
+  while (comparison <= num) {
+    comparison *= 10;
+    count++;
+  }
+  return count;
+}
+
 void updateEpd() {
 
-  // Convert float to string
-  // dtostrf(float, width, precision, buffer)
-  char stringBuf[10]; // Buffer to hold the resulting string
+  char stringBuf[24]; // dtostrf(float, width, precision, stringBuf)
+  uint16_t y = EPD_BUFFER_HEIGHT;
 
   epd.Reset();
   epd.Init();
   epd.ClearFrame();
 
   paint.Clear(UNCOLORED);
-  paint.DrawStringAt(0, 0, "Temperatur inne:     C", &Font24, COLORED);
-  dtostrf(tempIn.getCurrentState().toFloat(), 3, 1, stringBuf);
-  paint.DrawStringAt(290, 0, stringBuf, &Font24, COLORED);
-  epd.SetPartialWindow(paint.GetImage(), 0, 40, paint.GetWidth(), paint.GetHeight());
+  paint.DrawStringAt(10, 0, "Temperatur ute:      C", &Font24, COLORED);
+  float temperature = tempOut.getCurrentState().toFloat();
+  dtostrf(temperature, 3, 1, stringBuf);
+  paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(abs(tempOut.getCurrentState().toInt8()))+2), 0, stringBuf, &Font24, COLORED);
+  paint.DrawCircle(364, 3, 3, COLORED);    
+  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
 
+  y += EPD_BUFFER_HEIGHT;
   paint.Clear(UNCOLORED);
-  paint.DrawStringAt(0, 0, "Temperatur ute:      C", &Font24, COLORED);
-  dtostrf(tempOut.getCurrentState().toFloat(), 3, 1, stringBuf);
-  paint.DrawStringAt(290, 0, stringBuf, &Font24, COLORED);
-  epd.SetPartialWindow(paint.GetImage(), 0, 64, paint.GetWidth(), paint.GetHeight());
+  paint.DrawStringAt(10, 0, "Temperatur inne:     C", &Font24, COLORED);
+  temperature = tempIn.getCurrentState().toFloat();
+  dtostrf(temperature, 3, 1, stringBuf);
+  paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(temperature)+2), 0, stringBuf, &Font24, COLORED);    
+  paint.DrawCircle(364, 3, 3, COLORED);    
+  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
+
+  y += EPD_BUFFER_HEIGHT;
+  paint.Clear(UNCOLORED);
+  paint.DrawStringAt(10, 0, "CO2 inne:           ppm", &Font24, COLORED);
+  int16_t carbonDioxide = co2In.getCurrentState().toInt16();
+  itoa(carbonDioxide, stringBuf, 10);
+  paint.DrawStringAt(351-MAX_WIDTH_FONT*countDigits(carbonDioxide), 0, stringBuf, &Font24, COLORED);    
+  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
+
 
   /* This displays the data from the SRAM in e-Paper module */
   epd.DisplayFrame();
   epd.Sleep();
-}
-
-void printWiFiStatus() {
-  // print the SSID of the network you're attached to:
-  SerialCOM.print("SSID: ");
-  SerialCOM.println(WiFi.SSID());
-
-  // print your WiFi shield's IP address:
-  IPAddress ip = WiFi.localIP();
-  SerialCOM.print("IP Address: ");
-  SerialCOM.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  SerialCOM.print("signal strength (RSSI):");
-  SerialCOM.print(rssi);
-  SerialCOM.println(" dBm");
 }
