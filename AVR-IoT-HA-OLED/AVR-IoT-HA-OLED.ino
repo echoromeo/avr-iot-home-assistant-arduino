@@ -12,9 +12,10 @@
 #include <SPI.h>
 #include <WiFi101.h>
 #include <ArduinoHA.h>
-#include "Adafruit_MCP9808.h"
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 
 // Wifi client stuff for the winc1510
@@ -34,13 +35,15 @@ HAMqtt mqtt(client, device);
 // "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
 HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
 HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
-Adafruit_MCP9808 mcp9808 = Adafruit_MCP9808();
-unsigned long lastUpdateAt = 0;
 
-// You can also specify the precision of the sensor by providing the second argument to the constructor as follows:
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP1);
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
-// HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET     PIN_PD7 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN1_ADDRESS 0x3C
+#define SCREEN2_ADDRESS 0x3D
+Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+unsigned long lastUpdateAt = 0;
 
 void setup()
 {
@@ -64,21 +67,22 @@ void setup()
     PIN_WIFI_RST,
     PIN_WIFI_EN
   );
-  
-  // Initialize MCP9808 sensor
-  if (mcp9808.begin(ADDRESS_I2C_MCP9808))
-  {
-    SerialCOM.print("MCP9808 online");
-  }
-  else
-  {
-    SerialCOM.print("Couldn't find MCP9808!");
-    digitalWrite(LED_ERROR, LOW);
-  }
 
   //while (!SerialCOM) {
   //  ; // wait for serial port to connect. Must be commented out if not connected to PC
   //}
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display1.begin(SSD1306_SWITCHCAPVCC, SCREEN1_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation 1 failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation 2 failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
 
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
@@ -134,7 +138,6 @@ void loop() {
           digitalWrite(LED_DATA, LOW);
        
           brightnessSensor.setValue(readLightPct());
-          temperatureSensor.setValue(mcp9808.readTempC());
           lastUpdateAt = millis();
     
           // you can reset the sensors as follows:
