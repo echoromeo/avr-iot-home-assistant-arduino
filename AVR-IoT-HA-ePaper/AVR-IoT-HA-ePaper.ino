@@ -36,7 +36,7 @@ HAMqtt mqtt(client, device);
 HANumber tempIn("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
-unsigned long lastUpdateAt = -30*60000+10000;
+unsigned long lastUpdateAt = 0;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
 {
@@ -69,6 +69,9 @@ void setup()
   digitalWrite(LED_GREEN, HIGH);
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
+
+  // Configure SW1
+  pinMode(PIN_SW1, INPUT_PULLUP);
 
    // Initialize serial communication for debugging
   //SerialCOM.begin(115200);
@@ -180,6 +183,11 @@ void loop() {
     if (mqtt.isConnected())
     {
       digitalWrite(LED_CONN, LOW);
+
+      if (!digitalRead(PIN_SW1))
+      {
+        lastUpdateAt = millis()-31*60000;
+      }
 
       // Update sensor data every 30 minutes
       if ((millis() - lastUpdateAt) > 30*60000) {
