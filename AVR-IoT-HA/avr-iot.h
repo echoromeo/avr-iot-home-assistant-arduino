@@ -15,7 +15,7 @@
 
 // Swtches - Need internal pullup
 #define PIN_SW0           (PIN_PF6) // Only if Tools->Reset pin: "GPIO"
-#define PIN_SW1           (PIN_PD5)
+#define PIN_SW1           (PIN_PF5)
 
 // I2C/TWI
 #define PIN_I2C_SDA       (PIN_PA2)
