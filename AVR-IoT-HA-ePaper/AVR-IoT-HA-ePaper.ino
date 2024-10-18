@@ -160,6 +160,7 @@ void setup()
   co2In.onCommand(onNumberCommand);
   co2In.setIcon("mdi:molecule-co2");
   co2In.setName("CO2 Indoor");
+  co2In.setMax(6000); // can be float if precision is set via the constructor
   co2In.setStep(1.0f); // minimum step: 0.001f
   co2In.setMode(HANumber::ModeBox);
   co2In.setRetain(true);
@@ -235,7 +236,17 @@ void updateEpd() {
   paint.DrawStringAt(10, 0, "Temperatur ute:      C", &Font24, COLORED);
   float temperature = tempOut.getCurrentState().toFloat();
   dtostrf(temperature, 3, 1, stringBuf);
-  paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(abs(tempOut.getCurrentState().toInt8()))+2), 0, stringBuf, &Font24, COLORED);
+  int8_t offset = tempOut.getCurrentState().toInt8();
+  if (offset < 0)
+  {
+    offset = countDigits(abs(offset))+1;
+  }
+  else
+  {
+    offset = countDigits(offset);
+  }
+  offset +=1;
+  paint.DrawStringAt(351-MAX_WIDTH_FONT*offset, 0, stringBuf, &Font24, COLORED);
   paint.DrawCircle(364, 3, 3, COLORED);    
   epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
 
@@ -253,7 +264,7 @@ void updateEpd() {
   paint.DrawStringAt(10, 0, "CO2 inne:           ppm", &Font24, COLORED);
   int16_t carbonDioxide = co2In.getCurrentState().toInt16();
   itoa(carbonDioxide, stringBuf, 10);
-  paint.DrawStringAt(351-MAX_WIDTH_FONT*countDigits(carbonDioxide), 0, stringBuf, &Font24, COLORED);    
+  paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(carbonDioxide), 0, stringBuf, &Font24, COLORED);    
   epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
 
 
