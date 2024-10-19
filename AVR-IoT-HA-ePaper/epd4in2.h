@@ -61,7 +61,7 @@
 #define TCON_SETTING                                0x60
 #define RESOLUTION_SETTING                          0x61
 #define GSST_SETTING                                0x65
-#define GET_STATUS                                  0x71
+#define STATUS_GET                                  0x71
 #define AUTO_MEASUREMENT_VCOM                       0x80
 #define READ_VCOM_VALUE                             0x81
 #define VCM_DC_SETTING                              0x82
