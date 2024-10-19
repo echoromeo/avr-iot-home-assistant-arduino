@@ -281,7 +281,7 @@ void updateEpd()
       return; //break;
 
     case (EPD_BUFFER_HEIGHT*1):
-      paint.DrawStringAt(10, 0, "Temperatur ute:      C", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Grader    ute:      C", &Font24, COLORED);
       floatTemp = tempOut.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
       int16temp = tempOut.getCurrentState().toInt16();
@@ -294,40 +294,69 @@ void updateEpd()
         int16temp = countDigits(int16temp);
       }
       int16temp +=1;
-      paint.DrawStringAt(351-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
-      paint.DrawCircle(364, 3, 3, COLORED);    
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
+      paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
     case (EPD_BUFFER_HEIGHT*2):
-      paint.DrawStringAt(10, 0, "Temperatur inne:     C", &Font24, COLORED);
-      floatTemp = tempIn.getCurrentState().toFloat();
+      paint.DrawStringAt(10, 0, "Grader   oppe:      C", &Font24, COLORED);
+      floatTemp = tempUp.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
-      paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(floatTemp)+2), 0, stringBuf, &Font24, COLORED);    
-      paint.DrawCircle(364, 3, 3, COLORED);    
+      int16temp = (countDigits(floatTemp)+2);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
+      paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
     case (EPD_BUFFER_HEIGHT*3):
-      paint.DrawStringAt(10, 0, "CO2 inne:           ppm", &Font24, COLORED);
-      int16temp = co2In.getCurrentState().toInt16();
-      itoa(int16temp, stringBuf, 10);
-      paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(int16temp), 0, stringBuf, &Font24, COLORED);    
+      paint.DrawStringAt(10, 0, "Grader   nede:      C", &Font24, COLORED);
+      floatTemp = tempDown.getCurrentState().toFloat();
+      dtostrf(floatTemp, 3, 1, stringBuf);
+      int16temp = (countDigits(floatTemp)+2);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
+      paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*4): 
+    case (EPD_BUFFER_HEIGHT*4):
+      paint.DrawStringAt(10, 0, "CO2      oppe:      ppm", &Font24, COLORED);
+      int16temp = co2In.getCurrentState().toInt16();
+      itoa(int16temp, stringBuf, 10);
+      int16temp = countDigits(int16temp);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*5):
+      paint.DrawStringAt(10, 0, "Fukt     oppe:      %", &Font24, COLORED);
+      int16temp = moistUp.getCurrentState().toInt16();
+      itoa(int16temp, stringBuf, 10);
+      int16temp = countDigits(int16temp);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*6):
+      paint.DrawStringAt(10, 0, "Fukt     nede:      %", &Font24, COLORED);
+      int16temp = moistDown.getCurrentState().toInt16();
+      itoa(int16temp, stringBuf, 10);
+      int16temp = countDigits(int16temp);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*7): 
       y = EPD_HEIGHT-EPD_BUFFER_HEIGHT; // Uptime, at the bottom
-      paint.DrawStringAt(10, 0, "Oppetid:", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "      oppetid:      min", &Font24, COLORED);
       int16temp = millis()/60000ul;
       itoa(int16temp, stringBuf, 10);
-      paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(int16temp), 0, stringBuf, &Font24, COLORED);    
+      int16temp = countDigits(int16temp);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
       break;
 
     default:
+      y = 0;
+      lastUpdateAt = millis();
+
       /* This displays the data from the SRAM in e-Paper module */
       epd.DisplayFrame();
       epd.Sleep();
 
-      y = 0;
-      lastUpdateAt = millis();
       return; //break;
   }
 
