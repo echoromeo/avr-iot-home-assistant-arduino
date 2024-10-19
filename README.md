@@ -4,6 +4,7 @@ This project is an AVR-IoT Home Assistant MQTT Client using the ATmega4808 micro
 
 ## Sketches
  - **AVR-IoT-HA**: The onboard AVR-IoT Light and Temperature sensors, this is the template sketch that should work out of the box and can be used to confirm WiFi and MQTT connectivity.
+ - **AVR-IoT-HA-ePaper**: Waveshare 4.2" 400x300 pixels e-paper display set up with number entities to show temperature, CO2 and humidity numbers from Home Assistant.
 
 ## Libraries Used
 - **[WiFi101 by Arduino](https://docs.arduino.cc/libraries/wifi101/)**: For WiFi connectivity using the WINC1510 module.
