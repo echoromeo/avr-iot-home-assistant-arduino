@@ -227,6 +227,27 @@ void loop() {
     digitalWrite(LED_WIFI, HIGH);
     digitalWrite(LED_CONN, HIGH);
     digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
+
+      // Attempt to reconnect to WiFi network:
+    while (status != WL_CONNECTED)
+    {
+      //SerialCOM.print("Attempting to connect WiFi: ");
+      //SerialCOM.println(ssid);
+      status = WiFi.begin(ssid, pass);
+
+      if (status == WL_CONNECTED)
+      {
+        //SerialCOM.println("WINC1510 online");
+        //printWiFiStatus();
+        digitalWrite(LED_WIFI, LOW);
+        digitalWrite(LED_ERROR, HIGH); // Indicate error if WiFi has been disconnected
+      }
+      else
+      {
+        // wait 10 seconds for connection:
+        delay(10000);
+      }
+    }
   }
 }
 
