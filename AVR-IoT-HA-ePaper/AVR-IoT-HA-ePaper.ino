@@ -78,8 +78,7 @@ void setup()
   // Configure SW1
   pinMode(PIN_SW1, INPUT_PULLUP);
 
-   // Initialize serial communication for debugging
-  //SerialCOM.begin(115200);
+  // Serial communication for debugging removed due to flash size constraints
   
   // Set WiFi module pins
   WiFi.setPins(
@@ -89,26 +88,17 @@ void setup()
     PIN_WIFI_EN
   );
 
-  //while (!SerialCOM) {
-  //  ; // wait for serial port to connect. Must be commented out if not connected to PC
-  //}
-
   if (epd.Init() != 0) {
-    //SerialCOM.print("e-Paper init failed");
     digitalWrite(LED_ERROR, LOW);
   }
 
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
   {
-    //SerialCOM.print("Attempting to connect WiFi: ");
-    //SerialCOM.println(ssid);
     status = WiFi.begin(ssid, pass);
 
     if (status == WL_CONNECTED)
     {
-      //SerialCOM.println("WINC1510 online");
-      //printWiFiStatus();
       digitalWrite(LED_WIFI, LOW);
     }
     else
@@ -121,7 +111,6 @@ void setup()
   // Set Home Assistant device details
   device.setName("AVR-IoT eInk");
   device.setSoftwareVersion("1.0.0");
-
 
   // Configure Home Assistant sensor Temperature Outdoor
   tempOut.onCommand(onNumberCommand);
