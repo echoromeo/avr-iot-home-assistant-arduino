@@ -39,11 +39,13 @@ HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
 HANumber moistUp("iotNumberFour", HANumber::PrecisionP0);
 HANumber moistDown("iotNumberFive", HANumber::PrecisionP0);
+bool update = true;
 unsigned long lastUpdateAt = 0;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
 {
     sender->setState(number); // report the selected option back to the HA panel
+    update = true;
 }
 
 // ePaper stuff
@@ -94,19 +96,6 @@ void setup()
   if (epd.Init() != 0) {
     //SerialCOM.print("e-Paper init failed");
     digitalWrite(LED_ERROR, LOW);
-  }
-  else
-  {
-    // debug, remove later
-    tempOut.setCurrentState(-1.3f);
-    tempIn.setCurrentState(1.7f);
-    co2In.setCurrentState(611.0f);
-  	
-  	//SerialCOM.print("e-Paper online");
-    while (!lastUpdateAt)
-    {
-      updateEpd();
-    }
   }
 
   // Attempt to connect to WiFi network:
@@ -207,6 +196,7 @@ void loop() {
       if (!digitalRead(PIN_SW1))
       {
         lastUpdateAt = millis()-31*60000;
+        update = true;
       }
 
       // Update sensor data every 30 minutes
@@ -269,18 +259,28 @@ void updateEpd()
   int16_t int16temp;
   static uint16_t y = 0;
 
+  if (!update)
+  {
+    lastUpdateAt = millis();
+    return;    
+  }
+
   paint.Clear(UNCOLORED);
 
   switch (y) // split into FSM to not hog the SPI forever
   {
     case 0:
       epd.Reset();
-      epd.Init();
+      if (epd.Init() != 0) {
+        // e-Paper init failed
+        digitalWrite(LED_ERROR, LOW);
+        return;
+      }
       epd.ClearFrame();
       y += EPD_BUFFER_HEIGHT;
       return; //break;
 
-    case (EPD_BUFFER_HEIGHT*1):
+    case (EPD_BUFFER_HEIGHT*1):  
       paint.DrawStringAt(10, 0, "Grader    ute:      C", &Font24, COLORED);
       floatTemp = tempOut.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
@@ -350,6 +350,7 @@ void updateEpd()
       break;
 
     default:
+      update = false;
       y = 0;
       lastUpdateAt = millis();
 
