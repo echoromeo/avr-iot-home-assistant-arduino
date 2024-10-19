@@ -41,7 +41,6 @@ HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
 HANumber humidUp("iotNumberFour", HANumber::PrecisionP0);
 HANumber humidDown("iotNumberFive", HANumber::PrecisionP0);
 bool update = true;
-unsigned long lastUpdateAt = 0;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
 {
@@ -63,6 +62,9 @@ Paint paint(image, EPD_WIDTH, EPD_BUFFER_HEIGHT);    //width should be the multi
 
 #define COLORED     0
 #define UNCOLORED   1
+
+#define NEXT_UPDATE_TIME (60*1000ul*10) // 10 Minutes
+unsigned long lastUpdateAt = 0;
 
 void setup()
 {
@@ -206,12 +208,12 @@ void loop()
 
     if (!digitalRead(PIN_SW1))
     {
-      lastUpdateAt = millis()-31*60000;
+      lastUpdateAt = millis()-(NEXT_UPDATE_TIME+1);
       update = true;
     }
 
-    // Update sensor data every 30 minutes
-    if ((millis() - lastUpdateAt) > 30*60000) {
+    // Update sensor data every NEXT_UPDATE_TIME
+    if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME) {
 
         SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
         updateEpd();
