@@ -116,13 +116,13 @@ void setup()
   device.setSoftwareVersion("1.0.0");
 
   // Configure Home Assistant sensor Temperature Report
-  tempOut.onCommand(onNumberCommand);
-  tempOut.setIcon("mdi:thermometer");
-  tempOut.setName("Temperature Report");
-  tempOut.setMin(-50); // can be float if precision is set via the constructor
-  tempOut.setStep(0.1f); // minimum step: 0.001f
-  tempOut.setMode(HANumber::ModeBox);
-  tempOut.setRetain(true);
+  tempFuture.onCommand(onNumberCommand);
+  tempFuture.setIcon("mdi:thermometer");
+  tempFuture.setName("Temperature Report");
+  tempFuture.setMin(-50); // can be float if precision is set via the constructor
+  tempFuture.setStep(0.1f); // minimum step: 0.001f
+  tempFuture.setMode(HANumber::ModeBox);
+  tempFuture.setRetain(true);
 
   // Configure Home Assistant sensor Temperature Outdoor
   tempOut.onCommand(onNumberCommand);
