@@ -100,7 +100,10 @@ void setup()
     co2In.setCurrentState(611.0f);
   	
   	//SerialCOM.print("e-Paper online");
-    updateEpd();
+    while (!lastUpdateAt)
+    {
+      updateEpd();
+    }
   }
 
   // Attempt to connect to WiFi network:
@@ -196,7 +199,6 @@ void loop() {
           SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
           updateEpd();
           SPI.endTransaction();
-          lastUpdateAt = millis();
       }
     }
     else // !mqtt.isConnected()
@@ -223,52 +225,76 @@ uint8_t countDigits(uint16_t num)
   return count;
 }
 
-void updateEpd() {
-
+void updateEpd()
+{
   char stringBuf[24]; // dtostrf(float, width, precision, stringBuf)
-  uint16_t y = EPD_BUFFER_HEIGHT;
-
-  epd.Reset();
-  epd.Init();
-  epd.ClearFrame();
+  float floatTemp;
+  int16_t int16temp;
+  static uint16_t y = 0;
 
   paint.Clear(UNCOLORED);
-  paint.DrawStringAt(10, 0, "Temperatur ute:      C", &Font24, COLORED);
-  float temperature = tempOut.getCurrentState().toFloat();
-  dtostrf(temperature, 3, 1, stringBuf);
-  int8_t offset = tempOut.getCurrentState().toInt8();
-  if (offset < 0)
+
+  switch (y) // split into FSM to not hog the SPI forever
   {
-    offset = countDigits(abs(offset))+1;
+    case 0:
+      epd.Reset();
+      epd.Init();
+      epd.ClearFrame();
+      y += EPD_BUFFER_HEIGHT;
+      return; //break;
+
+    case (EPD_BUFFER_HEIGHT*1):
+      paint.DrawStringAt(10, 0, "Temperatur ute:      C", &Font24, COLORED);
+      floatTemp = tempOut.getCurrentState().toFloat();
+      dtostrf(floatTemp, 3, 1, stringBuf);
+      int16temp = tempOut.getCurrentState().toInt16();
+      if (int16temp < 0)
+      {
+        int16temp = countDigits(abs(int16temp))+1;
+      }
+      else
+      {
+        int16temp = countDigits(int16temp);
+      }
+      int16temp +=1;
+      paint.DrawStringAt(351-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
+      paint.DrawCircle(364, 3, 3, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*2):
+      paint.DrawStringAt(10, 0, "Temperatur inne:     C", &Font24, COLORED);
+      floatTemp = tempIn.getCurrentState().toFloat();
+      dtostrf(floatTemp, 3, 1, stringBuf);
+      paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(floatTemp)+2), 0, stringBuf, &Font24, COLORED);    
+      paint.DrawCircle(364, 3, 3, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*3):
+      paint.DrawStringAt(10, 0, "CO2 inne:           ppm", &Font24, COLORED);
+      int16temp = co2In.getCurrentState().toInt16();
+      itoa(int16temp, stringBuf, 10);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(int16temp), 0, stringBuf, &Font24, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*4): 
+      y = EPD_HEIGHT-EPD_BUFFER_HEIGHT; // Uptime, at the bottom
+      paint.DrawStringAt(10, 0, "Oppetid:", &Font24, COLORED);
+      int16temp = millis()/60000ul;
+      itoa(int16temp, stringBuf, 10);
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(int16temp), 0, stringBuf, &Font24, COLORED);    
+      break;
+
+    default:
+      /* This displays the data from the SRAM in e-Paper module */
+      epd.DisplayFrame();
+      epd.Sleep();
+
+      y = 0;
+      lastUpdateAt = millis();
+      return; //break;
   }
-  else
-  {
-    offset = countDigits(offset);
-  }
-  offset +=1;
-  paint.DrawStringAt(351-MAX_WIDTH_FONT*offset, 0, stringBuf, &Font24, COLORED);
-  paint.DrawCircle(364, 3, 3, COLORED);    
-  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
 
+  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
   y += EPD_BUFFER_HEIGHT;
-  paint.Clear(UNCOLORED);
-  paint.DrawStringAt(10, 0, "Temperatur inne:     C", &Font24, COLORED);
-  temperature = tempIn.getCurrentState().toFloat();
-  dtostrf(temperature, 3, 1, stringBuf);
-  paint.DrawStringAt(351-MAX_WIDTH_FONT*(countDigits(temperature)+2), 0, stringBuf, &Font24, COLORED);    
-  paint.DrawCircle(364, 3, 3, COLORED);    
-  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
 
-  y += EPD_BUFFER_HEIGHT;
-  paint.Clear(UNCOLORED);
-  paint.DrawStringAt(10, 0, "CO2 inne:           ppm", &Font24, COLORED);
-  int16_t carbonDioxide = co2In.getCurrentState().toInt16();
-  itoa(carbonDioxide, stringBuf, 10);
-  paint.DrawStringAt(334-MAX_WIDTH_FONT*countDigits(carbonDioxide), 0, stringBuf, &Font24, COLORED);    
-  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
-
-
-  /* This displays the data from the SRAM in e-Paper module */
-  epd.DisplayFrame();
-  epd.Sleep();
 }
