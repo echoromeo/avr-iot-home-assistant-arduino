@@ -166,67 +166,51 @@ void setup()
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
-void loop() {
-
+void loop()
+{
   // Check if WiFi is connected
-  if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
+  while (status != WL_CONNECTED)
   {
-	  digitalWrite(LED_WIFI, LOW);
-
-    digitalWrite(LED_DATA, LOW);
-    mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
-    digitalWrite(LED_DATA, HIGH);
-    
-    // Check if MQTT is connected
-    if (mqtt.isConnected())
-    {
-      digitalWrite(LED_CONN, LOW);
-
-      if (!digitalRead(PIN_SW1))
-      {
-        lastUpdateAt = millis()-31*60000;
-        update = true;
-      }
-
-      // Update sensor data every 30 minutes
-      if ((millis() - lastUpdateAt) > 30*60000) {
-
-          SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
-          updateEpd();
-          SPI.endTransaction();
-      }
-    }
-    else // !mqtt.isConnected()
-    {
-        digitalWrite(LED_CONN, HIGH);
-    }
-  }
-  else // !WiFi.status()
-  {
+    // WiFi has been disconnected
+    digitalWrite(LED_ERROR, LOW); 
     digitalWrite(LED_WIFI, HIGH);
     digitalWrite(LED_CONN, HIGH);
-    digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
 
-      // Attempt to reconnect to WiFi network:
-    while (status != WL_CONNECTED)
+    // Attempt to reconnect
+    status = WiFi.begin(ssid, pass);
+    // wait 10 seconds for connection
+    delay(10000);
+  }
+
+  // Wifi connected
+	digitalWrite(LED_WIFI, LOW);
+
+  digitalWrite(LED_DATA, LOW);
+  mqtt.loop(); // This maintains the mqtt connection and transmits data
+  digitalWrite(LED_DATA, HIGH);
+  
+  // Check if MQTT is connected
+  if (mqtt.isConnected())
+  {
+    digitalWrite(LED_CONN, LOW);
+
+    if (!digitalRead(PIN_SW1))
     {
-      //SerialCOM.print("Attempting to connect WiFi: ");
-      //SerialCOM.println(ssid);
-      status = WiFi.begin(ssid, pass);
-
-      if (status == WL_CONNECTED)
-      {
-        //SerialCOM.println("WINC1510 online");
-        //printWiFiStatus();
-        digitalWrite(LED_WIFI, LOW);
-        digitalWrite(LED_ERROR, HIGH); // Indicate error if WiFi has been disconnected
-      }
-      else
-      {
-        // wait 10 seconds for connection:
-        delay(10000);
-      }
+      lastUpdateAt = millis()-31*60000;
+      update = true;
     }
+
+    // Update sensor data every 30 minutes
+    if ((millis() - lastUpdateAt) > 30*60000) {
+
+        SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+        updateEpd();
+        SPI.endTransaction();
+    }
+  }
+  else // !mqtt.isConnected()
+  {
+      digitalWrite(LED_CONN, HIGH);
   }
 }
 
