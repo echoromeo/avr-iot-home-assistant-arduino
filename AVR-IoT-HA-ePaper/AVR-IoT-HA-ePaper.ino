@@ -51,7 +51,7 @@ Epd epd;
 * update a partial display several times.
 * 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
 */
-#define EPD_BUFFER_HEIGHT (EPD_HEIGHT / 10)
+#define EPD_BUFFER_HEIGHT (EPD_HEIGHT / 11) // int(300 / 11) * 11 = 297
 unsigned char image[(EPD_WIDTH*EPD_BUFFER_HEIGHT)/8];
 Paint paint(image, EPD_WIDTH, EPD_BUFFER_HEIGHT);    //width should be the multiple of 8 
 
@@ -130,37 +130,26 @@ void setup()
   device.setName("AVR-IoT eInk");
   device.setSoftwareVersion("1.0.0");
 
-  // Configure Home Assistant sensor Temperature Indoor
   tempIn.onCommand(onNumberCommand);
+  tempOut.onCommand(onNumberCommand);
+  co2In.onCommand(onNumberCommand);
 
-  // Optional configuration
+  // Configure Home Assistant sensor Temperature Indoor
   tempIn.setIcon("mdi:thermometer");
   tempIn.setName("Temperature Indoor");
-  tempIn.setMin(-40); // can be float if precision is set via the constructor
-  tempIn.setMax(40); // can be float if precision is set via the constructor
   tempIn.setStep(0.1f); // minimum step: 0.001f
   tempIn.setMode(HANumber::ModeBox);
-  // tempIn.setMode(HANumber::ModeSlider);
-
-  // You can set retain flag for the HA commands
   tempIn.setRetain(true);
 
-  // You can also enable optimistic mode for the HASelect.
-  // In this mode you won't need to report state back to the HA when commands are executed.
-  //tempIn.setOptimistic(true);
-
   // Configure Home Assistant sensor Temperature Outdoor
-  tempOut.onCommand(onNumberCommand);
   tempOut.setIcon("mdi:thermometer");
   tempOut.setName("Temperature Outdoor");
-  tempOut.setMin(-40); // can be float if precision is set via the constructor
-  tempOut.setMax(40); // can be float if precision is set via the constructor
+  tempOut.setMin(-50); // can be float if precision is set via the constructor
   tempOut.setStep(0.1f); // minimum step: 0.001f
   tempOut.setMode(HANumber::ModeBox);
   tempOut.setRetain(true);
 
   // Configure Home Assistant sensor CO2 Indoor
-  co2In.onCommand(onNumberCommand);
   co2In.setIcon("mdi:molecule-co2");
   co2In.setName("CO2 Indoor");
   co2In.setMax(6000); // can be float if precision is set via the constructor
@@ -294,7 +283,7 @@ void updateEpd()
       return; //break;
   }
 
-  epd.SetPartialWindow(image, 0, y, EPD_WIDTH, EPD_BUFFER_HEIGHT);
+  epd.SetPartialWindow(image, 0, y+3, EPD_WIDTH, EPD_BUFFER_HEIGHT);
   y += EPD_BUFFER_HEIGHT;
 
 }
