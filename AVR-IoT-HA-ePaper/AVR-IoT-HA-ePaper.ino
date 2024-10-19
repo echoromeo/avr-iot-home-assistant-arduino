@@ -37,8 +37,8 @@ HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
 HANumber tempUp("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
-HANumber moistUp("iotNumberFour", HANumber::PrecisionP0);
-HANumber moistDown("iotNumberFive", HANumber::PrecisionP0);
+HANumber humidUp("iotNumberFour", HANumber::PrecisionP0);
+HANumber humidDown("iotNumberFive", HANumber::PrecisionP0);
 bool update = true;
 unsigned long lastUpdateAt = 0;
 
@@ -147,20 +147,20 @@ void setup()
   co2In.setRetain(true);
 
   // Configure Home Assistant sensor Mositure Upstairs
-  moistUp.onCommand(onNumberCommand);
-  moistUp.setIcon("mdi:water-percent");
-  moistUp.setName("Moisture Upstairs");
-  moistUp.setStep(1.0f); // minimum step: 0.001f
-  moistUp.setMode(HANumber::ModeBox);
-  moistUp.setRetain(true);
+  humidUp.onCommand(onNumberCommand);
+  humidUp.setIcon("mdi:water-percent");
+  humidUp.setName("Humidity Upstairs");
+  humidUp.setStep(1.0f); // minimum step: 0.001f
+  humidUp.setMode(HANumber::ModeBox);
+  humidUp.setRetain(true);
 
   // Configure Home Assistant sensor Mositure Downstairs
-  moistDown.onCommand(onNumberCommand);
-  moistDown.setIcon("mdi:water-percent");
-  moistDown.setName("Moisture Downstairs");
-  moistDown.setStep(1.0f); // minimum step: 0.001f
-  moistDown.setMode(HANumber::ModeBox);
-  moistDown.setRetain(true);
+  humidDown.onCommand(onNumberCommand);
+  humidDown.setIcon("mdi:water-percent");
+  humidDown.setName("Humidity Downstairs");
+  humidDown.setStep(1.0f); // minimum step: 0.001f
+  humidDown.setMode(HANumber::ModeBox);
+  humidDown.setRetain(true);
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
@@ -299,7 +299,7 @@ void updateEpd()
 
     case (EPD_BUFFER_HEIGHT*5):
       paint.DrawStringAt(10, 0, "Fukt     oppe:      %", &Font24, COLORED);
-      int16temp = moistUp.getCurrentState().toInt16();
+      int16temp = humidUp.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
@@ -307,7 +307,7 @@ void updateEpd()
 
     case (EPD_BUFFER_HEIGHT*6):
       paint.DrawStringAt(10, 0, "Fukt     nede:      %", &Font24, COLORED);
-      int16temp = moistDown.getCurrentState().toInt16();
+      int16temp = humidDown.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
