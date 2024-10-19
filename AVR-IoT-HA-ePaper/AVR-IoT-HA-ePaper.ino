@@ -33,9 +33,12 @@ HAMqtt mqtt(client, device);
 
 // Home Assistant entities stuff
 // "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
-HANumber tempIn("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
+HANumber tempUp("iotNumberOne", HANumber::PrecisionP1);
+HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
+HANumber moistUp("iotNumberFour", HANumber::PrecisionP0);
+HANumber moistDown("iotNumberFive", HANumber::PrecisionP0);
 unsigned long lastUpdateAt = 0;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
@@ -130,18 +133,9 @@ void setup()
   device.setName("AVR-IoT eInk");
   device.setSoftwareVersion("1.0.0");
 
-  tempIn.onCommand(onNumberCommand);
-  tempOut.onCommand(onNumberCommand);
-  co2In.onCommand(onNumberCommand);
-
-  // Configure Home Assistant sensor Temperature Indoor
-  tempIn.setIcon("mdi:thermometer");
-  tempIn.setName("Temperature Indoor");
-  tempIn.setStep(0.1f); // minimum step: 0.001f
-  tempIn.setMode(HANumber::ModeBox);
-  tempIn.setRetain(true);
 
   // Configure Home Assistant sensor Temperature Outdoor
+  tempOut.onCommand(onNumberCommand);
   tempOut.setIcon("mdi:thermometer");
   tempOut.setName("Temperature Outdoor");
   tempOut.setMin(-50); // can be float if precision is set via the constructor
@@ -149,13 +143,46 @@ void setup()
   tempOut.setMode(HANumber::ModeBox);
   tempOut.setRetain(true);
 
+  // Configure Home Assistant sensor Temperature Upstairs
+  tempUp.onCommand(onNumberCommand);
+  tempUp.setIcon("mdi:thermometer");
+  tempUp.setName("Temperature Upstairs");
+  tempUp.setStep(0.1f); // minimum step: 0.001f
+  tempUp.setMode(HANumber::ModeBox);
+  tempUp.setRetain(true);
+
+  // Configure Home Assistant sensor Temperature Downstairs
+  tempDown.onCommand(onNumberCommand);
+  tempDown.setIcon("mdi:thermometer");
+  tempDown.setName("Temperature Downstairs");
+  tempDown.setStep(0.1f); // minimum step: 0.001f
+  tempDown.setMode(HANumber::ModeBox);
+  tempDown.setRetain(true);
+
   // Configure Home Assistant sensor CO2 Indoor
+  co2In.onCommand(onNumberCommand);
   co2In.setIcon("mdi:molecule-co2");
   co2In.setName("CO2 Indoor");
   co2In.setMax(6000); // can be float if precision is set via the constructor
   co2In.setStep(1.0f); // minimum step: 0.001f
   co2In.setMode(HANumber::ModeBox);
   co2In.setRetain(true);
+
+  // Configure Home Assistant sensor Mositure Upstairs
+  moistUp.onCommand(onNumberCommand);
+  moistUp.setIcon("mdi:water-percent");
+  moistUp.setName("Moisture Upstairs");
+  moistUp.setStep(1.0f); // minimum step: 0.001f
+  moistUp.setMode(HANumber::ModeBox);
+  moistUp.setRetain(true);
+
+  // Configure Home Assistant sensor Mositure Downstairs
+  moistDown.onCommand(onNumberCommand);
+  moistDown.setIcon("mdi:water-percent");
+  moistDown.setName("Moisture Downstairs");
+  moistDown.setStep(1.0f); // minimum step: 0.001f
+  moistDown.setMode(HANumber::ModeBox);
+  moistDown.setRetain(true);
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
