@@ -22,9 +22,9 @@
 #define PIN_I2C_SCL       (PIN_PA3)
 
 // SPI
-#define PIN_SPI_MOSI      (PIN_PA4)
-#define PIN_SPI_MISO      (PIN_PA5)
-#define PIN_SPI_SCK       (PIN_PA6)
+//#define PIN_SPI_MOSI      (PIN_PA4)
+//#define PIN_SPI_MISO      (PIN_PA5)
+//#define PIN_SPI_SCK       (PIN_PA6)
 
 // USART COM Port
 #define SerialCOM         Serial2
