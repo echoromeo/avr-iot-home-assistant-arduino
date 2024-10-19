@@ -33,6 +33,7 @@ HAMqtt mqtt(client, device);
 
 // Home Assistant entities stuff
 // "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
+HANumber tempFuture("iotNumberSeven", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
 HANumber tempUp("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
@@ -111,6 +112,15 @@ void setup()
   // Set Home Assistant device details
   device.setName("AVR-IoT eInk");
   device.setSoftwareVersion("1.0.0");
+
+  // Configure Home Assistant sensor Temperature Report
+  tempOut.onCommand(onNumberCommand);
+  tempOut.setIcon("mdi:thermometer");
+  tempOut.setName("Temperature Report");
+  tempOut.setMin(-50); // can be float if precision is set via the constructor
+  tempOut.setStep(0.1f); // minimum step: 0.001f
+  tempOut.setMode(HANumber::ModeBox);
+  tempOut.setRetain(true);
 
   // Configure Home Assistant sensor Temperature Outdoor
   tempOut.onCommand(onNumberCommand);
@@ -254,6 +264,24 @@ void updateEpd()
       return; //break;
 
     case (EPD_BUFFER_HEIGHT*1):  
+      paint.DrawStringAt(10, 0, "Veirmelding:        C", &Font24, COLORED);
+      floatTemp = tempFuture.getCurrentState().toFloat();
+      dtostrf(floatTemp, 3, 1, stringBuf);
+      int16temp = tempFuture.getCurrentState().toInt16();
+      if (int16temp < 0)
+      {
+        int16temp = countDigits(abs(int16temp))+1;
+      }
+      else
+      {
+        int16temp = countDigits(int16temp);
+      }
+      int16temp +=1;
+      paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
+      paint.DrawCircle(347, 3, 3, COLORED);    
+      break;
+
+    case (EPD_BUFFER_HEIGHT*2):  
       paint.DrawStringAt(10, 0, "Grader    ute:      C", &Font24, COLORED);
       floatTemp = tempOut.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
@@ -271,7 +299,7 @@ void updateEpd()
       paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*2):
+    case (EPD_BUFFER_HEIGHT*3):
       paint.DrawStringAt(10, 0, "Grader   oppe:      C", &Font24, COLORED);
       floatTemp = tempUp.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
@@ -280,7 +308,7 @@ void updateEpd()
       paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*3):
+    case (EPD_BUFFER_HEIGHT*4):
       paint.DrawStringAt(10, 0, "Grader   nede:      C", &Font24, COLORED);
       floatTemp = tempDown.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
@@ -289,7 +317,7 @@ void updateEpd()
       paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*4):
+    case (EPD_BUFFER_HEIGHT*5):
       paint.DrawStringAt(10, 0, "CO2      oppe:      ppm", &Font24, COLORED);
       int16temp = co2In.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
@@ -297,7 +325,7 @@ void updateEpd()
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*5):
+    case (EPD_BUFFER_HEIGHT*6):
       paint.DrawStringAt(10, 0, "Fukt     oppe:      %", &Font24, COLORED);
       int16temp = humidUp.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
@@ -305,7 +333,7 @@ void updateEpd()
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*6):
+    case (EPD_BUFFER_HEIGHT*7):
       paint.DrawStringAt(10, 0, "Fukt     nede:      %", &Font24, COLORED);
       int16temp = humidDown.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
@@ -313,7 +341,7 @@ void updateEpd()
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*7): 
+    case (EPD_BUFFER_HEIGHT*8): 
       y = EPD_HEIGHT-EPD_BUFFER_HEIGHT; // Uptime, at the bottom
       paint.DrawStringAt(10, 0, "      oppetid:      min", &Font24, COLORED);
       int16temp = millis()/60000ul;
