@@ -26,19 +26,19 @@ action:
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_co2') | float }}"
+      value: "{{ states('sensor.my_ha_co2') | int }}"
     target:
       entity_id: number.avr_iot_eink_co2_indoor
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_humidity_1') | float }}"
+      value: "{{ states('sensor.my_ha_humidity_1') | int }}"
     target:
       entity_id: number.avr_iot_eink_humidity_upstairs
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_humidity_2') | float }}"
+      value: "{{ states('sensor.my_ha_humidity_2') | int }}"
     target:
       entity_id: number.avr_iot_eink_humidity_downstairs
 mode: single
