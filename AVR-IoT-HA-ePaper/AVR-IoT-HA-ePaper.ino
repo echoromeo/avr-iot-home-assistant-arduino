@@ -269,40 +269,36 @@ void updateEpd()
       paint.DrawStringAt(10, 0, "Veirmelding:        C", &Font24, COLORED);
       floatTemp = tempFuture.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
-      int16temp = tempFuture.getCurrentState().toInt16();
-      if (int16temp < 0)
+      if (floatTemp < 0.0)
       {
-        int16temp = countDigits(abs(int16temp))+1;
+        int16temp = (countDigits(-floatTemp)+3);
       }
       else
       {
-        int16temp = countDigits(int16temp);
+        int16temp = (countDigits(floatTemp)+2);
       }
-      int16temp +=1;
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
       paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
     case (EPD_BUFFER_HEIGHT*2):  
-      paint.DrawStringAt(10, 0, "Grader    ute:      C", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Grader  ute:        C", &Font24, COLORED);
       floatTemp = tempOut.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
-      int16temp = tempOut.getCurrentState().toInt16();
-      if (int16temp < 0)
+      if (floatTemp < 0.0)
       {
-        int16temp = countDigits(abs(int16temp))+1;
+        int16temp = (countDigits(-floatTemp)+3);
       }
       else
       {
-        int16temp = countDigits(int16temp);
+        int16temp = (countDigits(floatTemp)+2);
       }
-      int16temp +=1;
       paint.DrawStringAt(334-MAX_WIDTH_FONT*int16temp, 0, stringBuf, &Font24, COLORED);
       paint.DrawCircle(347, 3, 3, COLORED);    
       break;
 
     case (EPD_BUFFER_HEIGHT*3):
-      paint.DrawStringAt(10, 0, "Grader   oppe:      C", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Grader oppe:        C", &Font24, COLORED);
       floatTemp = tempUp.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
       int16temp = (countDigits(floatTemp)+2);
@@ -311,7 +307,7 @@ void updateEpd()
       break;
 
     case (EPD_BUFFER_HEIGHT*4):
-      paint.DrawStringAt(10, 0, "Grader   nede:      C", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Grader nede:        C", &Font24, COLORED);
       floatTemp = tempDown.getCurrentState().toFloat();
       dtostrf(floatTemp, 3, 1, stringBuf);
       int16temp = (countDigits(floatTemp)+2);
@@ -320,7 +316,7 @@ void updateEpd()
       break;
 
     case (EPD_BUFFER_HEIGHT*5):
-      paint.DrawStringAt(10, 0, "CO2      oppe:      ppm", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "CO2    oppe:        ppm", &Font24, COLORED);
       int16temp = co2In.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
@@ -328,7 +324,7 @@ void updateEpd()
       break;
 
     case (EPD_BUFFER_HEIGHT*6):
-      paint.DrawStringAt(10, 0, "Fukt     oppe:      %", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Fukt   oppe:        %", &Font24, COLORED);
       int16temp = humidUp.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
@@ -336,7 +332,7 @@ void updateEpd()
       break;
 
     case (EPD_BUFFER_HEIGHT*7):
-      paint.DrawStringAt(10, 0, "Fukt     nede:      %", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "Fukt   nede:        %", &Font24, COLORED);
       int16temp = humidDown.getCurrentState().toInt16();
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
@@ -345,7 +341,7 @@ void updateEpd()
 
     case (EPD_BUFFER_HEIGHT*8): 
       y = EPD_HEIGHT-EPD_BUFFER_HEIGHT; // Uptime, at the bottom
-      paint.DrawStringAt(10, 0, "      oppetid:      min", &Font24, COLORED);
+      paint.DrawStringAt(10, 0, "    oppetid:        min", &Font24, COLORED);
       int16temp = millis()/60000ul;
       itoa(int16temp, stringBuf, 10);
       int16temp = countDigits(int16temp);
