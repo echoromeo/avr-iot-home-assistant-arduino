@@ -66,6 +66,17 @@ Paint paint(image, EPD_WIDTH, EPD_BUFFER_HEIGHT);    //width should be the multi
 #define NEXT_UPDATE_TIME (60*1000ul*10) // 10 Minutes
 unsigned long lastUpdateAt = 0;
 
+const uint16_t epdPositions[] = {
+  EPD_BUFFER_HEIGHT*1+3,   // 1st data
+  EPD_BUFFER_HEIGHT*2+3,   // 2nd data
+  EPD_BUFFER_HEIGHT*3+3,   // 3rd data
+  EPD_BUFFER_HEIGHT*4+3,   // 4th data
+  EPD_BUFFER_HEIGHT*5+3,   // 5th data
+  EPD_BUFFER_HEIGHT*6+3,   // 6th data
+  EPD_BUFFER_HEIGHT*7+3,   // 7th data
+  EPD_BUFFER_HEIGHT*10+3,  // 8th data, uptime at bottom for now
+};
+
 void setup()
 {
   // Configure LEDs off
@@ -247,8 +258,7 @@ void DrawCelciusInFont24At(int x, int y, int colored)
 
 void updateEpd()
 {
-  char stringBuf[5]; // dtostrf(float, -width, precision, stringBuf)
-  static uint16_t y = 0;
+  static uint8_t idx = 0;
 
   if (!update)
   {
@@ -258,7 +268,7 @@ void updateEpd()
 
   paint.Clear(UNCOLORED);
 
-  switch (y) // split into FSM to not hog the SPI forever
+  switch (idx) // split into FSM to not hog the SPI forever
   {
     case 0:
       epd.Reset();
@@ -268,59 +278,57 @@ void updateEpd()
         return;
       }
       epd.ClearFrame();
-      y += EPD_BUFFER_HEIGHT;
-      return; //break;
+      break;
 
-    case (EPD_BUFFER_HEIGHT*1):  
+    case (1):  
       paint.DrawStringAt(10, 0, "Veirmelding:", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &tempFuture, 1, COLORED);
       DrawCelciusInFont24At(347, 0, COLORED);
       break;
 
-    case (EPD_BUFFER_HEIGHT*2):  
+    case (2):  
       paint.DrawStringAt(10, 0, "Grader  ute:", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &tempOut, 1, COLORED);
       DrawCelciusInFont24At(347, 0, COLORED);
       break;
 
-    case (EPD_BUFFER_HEIGHT*3):
+    case (3):
       paint.DrawStringAt(10, 0, "Grader oppe:", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &tempUp, 1, COLORED);  
       DrawCelciusInFont24At(347, 0, COLORED);    
       break;
 
-    case (EPD_BUFFER_HEIGHT*4):
+    case (4):
       paint.DrawStringAt(10, 0, "Grader nede:", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &tempDown, 1, COLORED); 
       DrawCelciusInFont24At(347, 0, COLORED);   
       break;
 
-    case (EPD_BUFFER_HEIGHT*5):
+    case (5):
       paint.DrawStringAt(10, 0, "CO2    oppe:        ppm", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &co2In, 1, COLORED);
       break;
 
-    case (EPD_BUFFER_HEIGHT*6):
+    case (6):
       paint.DrawStringAt(10, 0, "Fukt   oppe:        %", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &humidUp, 1, COLORED);
       break;
 
-    case (EPD_BUFFER_HEIGHT*7):
+    case (7):
       paint.DrawStringAt(10, 0, "Fukt   nede:        %", &Font24, COLORED);
       DrawHANumberInFont24At(334, 0, &humidDown, 1, COLORED);
       break;
 
-    case (EPD_BUFFER_HEIGHT*8): 
-      y = EPD_HEIGHT-EPD_BUFFER_HEIGHT; // Uptime, at the bottom
+    case (8): 
       paint.DrawStringAt(10, 0, "    oppetid:        min", &Font24, COLORED);
-      uint16_t int16temp = millis()/60000ul;
-      itoa(int16temp, stringBuf, 10);
+      char stringBuf[5];
+      itoa(millis()/60000ul, stringBuf, 10);
       paint.DrawStringAt(334-MAX_WIDTH_FONT*4, 0, stringBuf, &Font24, COLORED);    
       break;
 
     default:
       update = false;
-      y = 0;
+      idx = 0;
       lastUpdateAt = millis();
 
       /* This displays the data from the SRAM in e-Paper module */
@@ -330,7 +338,9 @@ void updateEpd()
       return; //break;
   }
 
-  epd.SetPartialWindow(image, 0, y+3, EPD_WIDTH, EPD_BUFFER_HEIGHT);
-  y += EPD_BUFFER_HEIGHT;
-
+  if (idx)
+  {
+    epd.SetPartialWindow(image, 0, epdPositions[idx-1], EPD_WIDTH, EPD_BUFFER_HEIGHT);
+  }
+  idx++;
 }
