@@ -1,0 +1,44 @@
+alias: e-Ink Updating
+description: ""
+trigger:
+  - platform: time_pattern
+    minutes: /10
+condition: []
+action:
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_temperature_1') | float }}"
+    target:
+      entity_id: number.avr_iot_eink_temperature_outside
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_temperature_2') | float }}"
+    target:
+      entity_id: number.avr_iot_eink_temperature_upstairs
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_temperature_3') | float }}"
+    target:
+      entity_id: number.avr_iot_eink_temperature_downstairs
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_co2') | int }}"
+    target:
+      entity_id: number.avr_iot_eink_co2_indoor
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_humidity_1') | int }}"
+    target:
+      entity_id: number.avr_iot_eink_humidity_upstairs
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.my_ha_humidity_2') | int }}"
+    target:
+      entity_id: number.avr_iot_eink_humidity_downstairs
+mode: single
