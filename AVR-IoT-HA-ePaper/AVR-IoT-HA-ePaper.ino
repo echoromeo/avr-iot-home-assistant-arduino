@@ -224,11 +224,18 @@ void loop()
     }
 
     // Update sensor data every NEXT_UPDATE_TIME
-    if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME) {
-
+    if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME)
+    {
+      if (update)
+      {
         SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
         updateEpd();
         SPI.endTransaction();
+      }
+      else
+      {
+        lastUpdateAt = millis();
+      }
     }
   }
   else // !mqtt.isConnected()
@@ -259,12 +266,6 @@ void DrawCelciusInFont24At(int x, int y, int colored)
 void updateEpd()
 {
   static uint8_t idx = 0;
-
-  if (!update)
-  {
-    lastUpdateAt = millis();
-    return;    
-  }
 
   paint.Clear(UNCOLORED);
 
