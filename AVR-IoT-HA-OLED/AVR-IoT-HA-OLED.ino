@@ -74,12 +74,12 @@ void setup()
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display1.begin(SSD1306_SWITCHCAPVCC, SCREEN1_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation 1 failed"));
+    SerialCOM.println(F("SSD1306 allocation 1 failed"));
     for(;;); // Don't proceed, loop forever
   }
 
   if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation 2 failed"));
+    SerialCOM.println(F("SSD1306 allocation 2 failed"));
     for(;;); // Don't proceed, loop forever
   }
 
@@ -105,7 +105,7 @@ void setup()
   }
 
   // Set Home Assistant device details
-  device.setName("AVR-IoT");
+  device.setName("AVR-IoT OLED");
   device.setSoftwareVersion("1.0.0");
 
   // Configure Home Assistant sensors
