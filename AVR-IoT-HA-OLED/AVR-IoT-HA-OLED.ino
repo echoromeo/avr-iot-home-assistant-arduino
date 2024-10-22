@@ -75,7 +75,7 @@ void setup()
   InitRTC();
 
   // Initialize serial communication for debugging
-  SerialCOM.begin(115200);
+  //SerialCOM.begin(115200);
   
   // Set WiFi module pins
   WiFi.setPins(
@@ -96,7 +96,7 @@ void setup()
   }
 
   // if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
-  //   SerialCOM.println(F("SSD1306 allocation 2 failed"));
+  //   //SerialCOM.println(F("SSD1306 allocation 2 failed"));
   //   for(;;); // Don't proceed, loop forever
   // }
 
@@ -104,14 +104,14 @@ void setup()
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
   {
-    SerialCOM.print("Attempting to connect WiFi: ");
-    SerialCOM.println(ssid);
+    //SerialCOM.print("Attempting to connect WiFi: ");
+    //SerialCOM.println(ssid);
     status = WiFi.begin(ssid, pass);
 
     if (status == WL_CONNECTED)
     {
-      SerialCOM.println("WINC1510 online");
-      printWiFiStatus();
+      //SerialCOM.println("WINC1510 online");
+      //printWiFiStatus();
       digitalWrite(LED_WIFI, LOW);
     }
     else
@@ -176,7 +176,8 @@ void loop() {
           }
           else
           {
-            //TODO: Do some OLED disable/clear here
+            display1.clearDisplay();
+            display1.display();
           }
 
           currentClockState = newClockState;
@@ -208,29 +209,36 @@ void loop() {
       // Create time string "HH:MM"
       char displayTime[6];
       strftime(displayTime, sizeof(displayTime), "%H:%M", &clock);
-      SerialCOM.print(displayTime);
+      //SerialCOM.print(displayTime);
 
-      //TODO: OLED!
+      display1.clearDisplay();
+
+      display1.setTextSize(2); // Draw 2X-scale text
+      display1.setTextColor(SSD1306_WHITE);
+      display1.setCursor(0, 0);
+      display1.write(displayTime);
+
+      display1.display();
     }
   }
 }
 
-void printWiFiStatus() {
-  // print the SSID of the network you're attached to:
-  SerialCOM.print("SSID: ");
-  SerialCOM.println(WiFi.SSID());
+// void printWiFiStatus() {
+//   // print the SSID of the network you're attached to:
+//   SerialCOM.print("SSID: ");
+//   SerialCOM.println(WiFi.SSID());
 
-  // print your WiFi shield's IP address:
-  IPAddress ip = WiFi.localIP();
-  SerialCOM.print("IP Address: ");
-  SerialCOM.println(ip);
+//   // print your WiFi shield's IP address:
+//   IPAddress ip = WiFi.localIP();
+//   SerialCOM.print("IP Address: ");
+//   SerialCOM.println(ip);
 
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  SerialCOM.print("signal strength (RSSI):");
-  SerialCOM.print(rssi);
-  SerialCOM.println(" dBm");
-}
+//   // print the received signal strength:
+//   long rssi = WiFi.RSSI();
+//   SerialCOM.print("signal strength (RSSI):");
+//   SerialCOM.print(rssi);
+//   SerialCOM.println(" dBm");
+// }
 
 ISR(RTC_PIT_vect)
 {
