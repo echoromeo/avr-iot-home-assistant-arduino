@@ -56,9 +56,9 @@ Epd epd;
 * update a partial display several times.
 * 1 byte = 8 pixels, therefore you have to set 8*N pixels at a time.
 */
-#define EPD_BUFFER_HEIGHT (EPD_HEIGHT / 11) // int(300 / 11) * 11 = 297
-unsigned char image[(EPD_WIDTH*EPD_BUFFER_HEIGHT)/8];
-Paint paint(image, EPD_WIDTH, EPD_BUFFER_HEIGHT);    //width should be the multiple of 8 
+#define EPD_BUFFER_HEIGHT (8 * 3) //width should be the multiple of 8 
+unsigned char image[EPD_BUFFER_HEIGHT*EPD_HEIGHT/8];
+Paint paint(image, EPD_BUFFER_HEIGHT, EPD_HEIGHT);    
 
 #define COLORED     0
 #define UNCOLORED   1
@@ -70,14 +70,14 @@ const uint16_t epdPositions[] = {
   0,                     // Outside temperature
   EPD_BUFFER_HEIGHT,     // Weather Report
 
-  EPD_BUFFER_HEIGHT*3,   // Livingroom temperature
-  EPD_BUFFER_HEIGHT*4,   // Livingroom humidity
-  EPD_BUFFER_HEIGHT*5,   // Livingroom CO2
+  EPD_BUFFER_HEIGHT*4,   // Livingroom temperature
+  EPD_BUFFER_HEIGHT*5,   // Livingroom humidity
+  EPD_BUFFER_HEIGHT*6,   // Livingroom CO2
 
-  EPD_BUFFER_HEIGHT*7,   // Basement temperature
-  EPD_BUFFER_HEIGHT*8,   // Basement humidity
+  EPD_BUFFER_HEIGHT*8,   // Basement temperature
+  EPD_BUFFER_HEIGHT*9,   // Basement humidity
 
-  EPD_BUFFER_HEIGHT*10+3,                    // Uptime
+  EPD_WIDTH-EPD_BUFFER_HEIGHT,                    // Uptime
 };
 
 void setup()
@@ -108,6 +108,7 @@ void setup()
   if (epd.Init() != 0) {
     digitalWrite(LED_ERROR, LOW);
   }
+  paint.SetRotate(ROTATE_270);
 
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
@@ -286,48 +287,49 @@ void updateEpd()
 
     case (1):  
       paint.DrawStringAt(5, 0, "Ute", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &tempOut, 1, COLORED);
+      DrawHANumberInFont24At(237, 0, &tempOut, 1, COLORED);
       DrawCelciusInFont24At(348, 0, COLORED);
       break;
 
     case (2):  
-      paint.DrawStringAt(5, 0, "Yr", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &tempFuture, 1, COLORED);
-      DrawCelciusInFont24At(348, 0, COLORED);
+      paint.DrawStringAt(5, 0, "-Yr", &Font24, COLORED);
+      DrawHANumberInFont24At(237, 0, &tempFuture, 1, COLORED);
+      DrawCelciusInFont24At(248, 0, COLORED);
       break;
 
     case (3):
       paint.DrawStringAt(5, 0, "Stove", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &tempUp, 1, COLORED);  
-      DrawCelciusInFont24At(348, 0, COLORED);    
+      DrawHANumberInFont24At(237, 0, &tempUp, 1, COLORED);  
+      DrawCelciusInFont24At(248, 0, COLORED);    
       break;
 
     case (4):
-      paint.DrawStringAt(345, 0, "%", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &humidUp, 1, COLORED);
+      paint.DrawStringAt(245, 0, "%", &Font24, COLORED);
+      DrawHANumberInFont24At(237, 0, &humidUp, 1, COLORED);
       break;
 
     case (5):
-      paint.DrawStringAt(345, 0, "ppm", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &co2In, 1, COLORED);
+      paint.DrawStringAt(245, 0, "ppm", &Font24, COLORED);
+      DrawHANumberInFont24At(237, 0, &co2In, 1, COLORED);
       break;
 
     case (6):
       paint.DrawStringAt(5, 0, "Kjellar", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &tempDown, 1, COLORED); 
-      DrawCelciusInFont24At(348, 0, COLORED);   
+      DrawHANumberInFont24At(237, 0, &tempDown, 1, COLORED); 
+      DrawCelciusInFont24At(248, 0, COLORED);   
       break;
 
     case (7):
-      paint.DrawStringAt(345, 0, "%", &Font24, COLORED);
-      DrawHANumberInFont24At(337, 0, &humidDown, 1, COLORED);
+      paint.DrawStringAt(245, 0, "%", &Font24, COLORED);
+      DrawHANumberInFont24At(237, 0, &humidDown, 1, COLORED);
       break;
 
     case (8): 
-      paint.DrawStringAt(5, 0, "Oppetid             min", &Font24, COLORED);
+      paint.DrawStringAt(5, 0, "Oppetid", &Font24, COLORED);
+      paint.DrawStringAt(245, 0, "min", &Font24, COLORED);
       char stringBuf[5];
       itoa(millis()/60000ul, stringBuf, 10);
-      paint.DrawStringAt(337-MAX_WIDTH_FONT*strlen(stringBuf), 0, stringBuf, &Font24, COLORED);    
+      paint.DrawStringAt(237-MAX_WIDTH_FONT*strlen(stringBuf), 0, stringBuf, &Font24, COLORED);    
       break;
 
     default:
@@ -344,7 +346,7 @@ void updateEpd()
 
   if (idx)
   {
-    epd.SetPartialWindow(image, 0, epdPositions[idx-1]+3, EPD_WIDTH, EPD_BUFFER_HEIGHT);
+    epd.SetPartialWindow(image, epdPositions[idx-1]+3, 0, paint.GetWidth(), paint.GetHeight());
   }
   idx++;
 }
