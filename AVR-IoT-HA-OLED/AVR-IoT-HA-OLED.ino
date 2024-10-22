@@ -5,18 +5,18 @@
   Libraries:
   * WiFi101 by Arduino
   * home-assistant-integration by David Chyrzynski
-  * Adafruit MCP9808 Library by Adafruit
+  * Adafruit SSD1306 Library by Adafruit
 
  */
 #include <Wire.h>
 #include <SPI.h>
+#include <time.h>
 #include <WiFi101.h>
 #include <ArduinoHA.h>
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
 
 // Wifi client stuff for the winc1510
 WiFiClient client;
@@ -25,25 +25,39 @@ char pass[] = SECRET_PASS;    // your network password
 int status = WL_IDLE_STATUS;
 
 // MQTT device stuff for Home Assistant
-byte mac[] = SECRET_MAC;      // can we get a mac directly from the winc?
+byte mac[6];                        // the MAC address to be used as unique ID
 char ha_user[] = SECRET_HA_USER;    // the device homeassistant (mqtt) username
 char ha_pass[] = SECRET_HA_PASS;    // the device homeassistant (mqtt) password
 HADevice device(mac, sizeof(mac));
 HAMqtt mqtt(client, device);
 
 // Home Assistant entities stuff
-// "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
-HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
-HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
+HASwitch clockOn("iotClockOn");
+bool currentClockState = false;
 
+// OLED display stuff
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET     PIN_PD7 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN1_ADDRESS 0x3C
-#define SCREEN2_ADDRESS 0x3D
 Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-unsigned long lastUpdateAt = 0;
+//#define SCREEN2_ADDRESS 0x3D
+//Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Time handling stuff
+time_t starttime = 0;  // for WiFi.getTime()
+time_t lastUpdateAt = 0;
+
+void InitRTC(void) // Register magic to initialize the 1 second ISR(RTC_PIT_vect)
+{
+  RTC.PITINTCTRL = RTC_PI_bm;
+  RTC.PITCTRLA = RTC_PITEN_bm | RTC_PERIOD_CYC32768_gc;
+}
+
+void onSwitchCommand(bool state, HASwitch* sender)
+{
+    sender->setState(state); // report state back to the Home Assistant
+}
 
 void setup()
 {
@@ -57,7 +71,10 @@ void setup()
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
 
-   // Initialize serial communication for debugging
+  // Initialize the RTC for the system tick
+  InitRTC();
+
+  // Initialize serial communication for debugging
   SerialCOM.begin(115200);
   
   // Set WiFi module pins
@@ -74,14 +91,14 @@ void setup()
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display1.begin(SSD1306_SWITCHCAPVCC, SCREEN1_ADDRESS)) {
-    SerialCOM.println(F("SSD1306 allocation 1 failed"));
+    digitalWrite(LED_ERROR, LOW);
     for(;;); // Don't proceed, loop forever
   }
 
-  if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
-    SerialCOM.println(F("SSD1306 allocation 2 failed"));
-    for(;;); // Don't proceed, loop forever
-  }
+  // if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
+  //   SerialCOM.println(F("SSD1306 allocation 2 failed"));
+  //   for(;;); // Don't proceed, loop forever
+  // }
 
 
   // Attempt to connect to WiFi network:
@@ -104,17 +121,31 @@ void setup()
     }
   }
 
+  // Get time
+  while (starttime == 0) {
+    Serial.println("Attempting to get network time");
+    starttime = WiFi.getTime();
+    if (starttime)
+    {
+      set_system_time(starttime);
+    }
+    else
+    {
+      // wait 2 seconds for connection:
+      delay(2000);
+    }
+  }
+
   // Set Home Assistant device details
   device.setName("AVR-IoT OLED");
   device.setSoftwareVersion("1.0.0");
+  WiFi.macAddress(mac);
+  device.setUniqueId(mac, sizeof(mac));
 
   // Configure Home Assistant sensors
-  brightnessSensor.setIcon("mdi:brightness-percent");
-  brightnessSensor.setName("Brightness");
-  brightnessSensor.setUnitOfMeasurement("%");
-  temperatureSensor.setIcon("mdi:thermometer");
-  temperatureSensor.setName("Temperature");
-  temperatureSensor.setUnitOfMeasurement("°C");
+  clockOn.onCommand(onSwitchCommand);
+  clockOn.setIcon("mdi:clock-digital");
+  clockOn.setName("Display Clock");
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
@@ -133,17 +164,23 @@ void loop() {
     {
       digitalWrite(LED_CONN, LOW);
       
-      // Update sensor data every 10 seconds
-      if ((millis() - lastUpdateAt) > 10000) {
+      bool newClockState = clockOn.getCurrentState();
+      if (currentClockState != newClockState) {
           digitalWrite(LED_DATA, LOW);
-       
-          brightnessSensor.setValue(readLightPct());
-          lastUpdateAt = millis();
-    
-          // you can reset the sensors as follows:
-          // brightnessSensor.setValue(nullptr);
-          // temperatureSensor.setValue(nullptr);
-          
+
+          if (newClockState)
+          {
+            //TODO: Do some OLED enable here
+
+            //TODO: set_system_time(WiFi.getTime());?
+          }
+          else
+          {
+            //TODO: Do some OLED disable/clear here
+          }
+
+          currentClockState = newClockState;
+         
           digitalWrite(LED_DATA, HIGH);
       }
     }
@@ -158,8 +195,25 @@ void loop() {
     digitalWrite(LED_CONN, HIGH);
     digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
   }
-}
 
+  if (currentClockState)
+  {
+    time_t thisTime;
+    if(time(&thisTime) - lastUpdateAt >= 60)
+    {
+      tm clock;
+      gmtime_r(&thisTime, &clock);
+      lastUpdateAt = thisTime-clock.tm_sec;
+
+      // Create time string "HH:MM"
+      char displayTime[6];
+      strftime(displayTime, sizeof(displayTime), "%H:%M", &clock);
+      SerialCOM.print(displayTime);
+
+      //TODO: OLED!
+    }
+  }
+}
 
 void printWiFiStatus() {
   // print the SSID of the network you're attached to:
@@ -176,4 +230,10 @@ void printWiFiStatus() {
   SerialCOM.print("signal strength (RSSI):");
   SerialCOM.print(rssi);
   SerialCOM.println(" dBm");
+}
+
+ISR(RTC_PIT_vect)
+{
+  system_tick();
+  RTC.PITINTFLAGS = RTC_PI_bm;
 }
