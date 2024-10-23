@@ -1,5 +1,5 @@
 /*
-  AVR-IoT Home Assistant MQTT Client
+  AVR-IoT Home Assistant MQTT Client with OLED Clock
 
   Using MegaCoreX by MCUdude for ATmega4808 support
   Libraries:
@@ -17,6 +17,7 @@
 #include "arduino_secrets.h" 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+//#include <Fonts/FreeMono18pt7b.h>
 
 // Wifi client stuff for the winc1510
 WiFiClient client;
@@ -38,11 +39,11 @@ bool currentClockState = false;
 // OLED display stuff
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET     PIN_PD7 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define OLED_RESET     PIN_AN // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN1_ADDRESS 0x3C
 Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 //#define SCREEN2_ADDRESS 0x3D
-//Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+//Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Time handling stuff
 time_t starttime = 0;  // for WiFi.getTime()
@@ -94,6 +95,11 @@ void setup()
     digitalWrite(LED_ERROR, LOW);
     for(;;); // Don't proceed, loop forever
   }
+  display1.setTextSize(4); // Draw 2X-scale text
+  display1.setTextColor(SSD1306_WHITE);
+  display1.setCursor(0, 0);
+  //display1.setFont(&FreeMono18pt7b);
+  display1.display();
 
   // if(!display2.begin(SSD1306_SWITCHCAPVCC, SCREEN2_ADDRESS)) {
   //   //SerialCOM.println(F("SSD1306 allocation 2 failed"));
@@ -123,7 +129,7 @@ void setup()
 
   // Get time
   while (starttime == 0) {
-    Serial.println("Attempting to get network time");
+    //Serial.println("Attempting to get network time");
     starttime = WiFi.getTime();
     if (starttime)
     {
@@ -140,12 +146,13 @@ void setup()
   device.setName("AVR-IoT OLED");
   device.setSoftwareVersion("1.0.0");
   WiFi.macAddress(mac);
-  device.setUniqueId(mac, sizeof(mac));
+  device.setUniqueId(mac, sizeof(mac)); //TODO: Check if needed
 
   // Configure Home Assistant sensors
   clockOn.onCommand(onSwitchCommand);
   clockOn.setIcon("mdi:clock-digital");
   clockOn.setName("Display Clock");
+  clockOn.setRetain(true);
 
   // Connect to Home Assistant MQTT broker  
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
@@ -172,7 +179,12 @@ void loop() {
           {
             //TODO: Do some OLED enable here
 
-            //TODO: set_system_time(WiFi.getTime());?
+            time_t calibration_time = WiFi.getTime();
+            if (calibration_time)
+            {
+              set_system_time(calibration_time);
+            }
+            //TODO: else error?
           }
           else
           {
@@ -212,12 +224,7 @@ void loop() {
       //SerialCOM.print(displayTime);
 
       display1.clearDisplay();
-
-      display1.setTextSize(2); // Draw 2X-scale text
-      display1.setTextColor(SSD1306_WHITE);
-      display1.setCursor(0, 0);
       display1.write(displayTime);
-
       display1.display();
     }
   }
