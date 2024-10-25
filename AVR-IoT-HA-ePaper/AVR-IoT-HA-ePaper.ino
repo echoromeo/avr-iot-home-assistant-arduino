@@ -288,7 +288,7 @@ void updateEpd()
     case (1):  
       paint.DrawStringAt(5, 0, "Ute", &Font24, COLORED);
       DrawHANumberInFont24At(237, 0, &tempOut, 1, COLORED);
-      DrawCelciusInFont24At(348, 0, COLORED);
+      DrawCelciusInFont24At(248, 0, COLORED);
       break;
 
     case (2):  
