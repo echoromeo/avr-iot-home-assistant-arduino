@@ -35,6 +35,7 @@ HAMqtt mqtt(client, device);
 // "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
 HANumber tempFuture("iotNumberSeven", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
+char weather[20] = "Thunder!";
 HANumber tempUp("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
@@ -79,6 +80,23 @@ const uint16_t epdPositions[] = {
 
   EPD_WIDTH-EPD_BUFFER_HEIGHT,                    // Uptime
 };
+
+void onMessage(const char* topic, const uint8_t* payload, uint16_t length) {
+    if (strcmp(topic, "myWeather") == 0) {
+        // message on "myWeather" received
+        uint8_t i = 0;
+        while (length--)
+        {
+          weather[i] = payload[i];
+          i++; 
+        }
+        weather[i] = '\0';
+    }
+}
+
+void onConnected() {
+    mqtt.subscribe("myWeather");
+}
 
 void setup()
 {
@@ -190,6 +208,8 @@ void setup()
   humidDown.setRetain(true);
 
   // Connect to Home Assistant MQTT broker  
+  mqtt.onMessage(onMessage);
+  mqtt.onConnected(onConnected);
   mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
@@ -292,7 +312,7 @@ void updateEpd()
       break;
 
     case (2):  
-      paint.DrawStringAt(5, 0, "-Yr", &Font24, COLORED);
+      paint.DrawStringAt(5+MAX_WIDTH_FONT, 0, weather, &Font24, COLORED);    
       DrawHANumberInFont24At(237, 0, &tempFuture, 1, COLORED);
       DrawCelciusInFont24At(248, 0, COLORED);
       break;
