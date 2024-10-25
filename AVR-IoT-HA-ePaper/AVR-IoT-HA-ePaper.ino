@@ -35,12 +35,12 @@ HAMqtt mqtt(client, device);
 // "iotNumberOne" and "iotNumberTwo" are unique IDs of the sensors
 HANumber tempFuture("iotNumberSeven", HANumber::PrecisionP1);
 HANumber tempOut("iotNumberTwo", HANumber::PrecisionP1);
-char weather[20] = "Thunder!";
 HANumber tempUp("iotNumberOne", HANumber::PrecisionP1);
 HANumber tempDown("iotNumberSix", HANumber::PrecisionP1);
 HANumber co2In("iotNumberThree", HANumber::PrecisionP0);
 HANumber humidUp("iotNumberFour", HANumber::PrecisionP0);
 HANumber humidDown("iotNumberFive", HANumber::PrecisionP0);
+char weather[EPD_HEIGHT/MAX_WIDTH_FONT] = "iotStringOne";
 bool update = true;
 
 void onNumberCommand(HANumeric number, HANumber* sender)
@@ -71,12 +71,12 @@ const uint16_t epdPositions[] = {
   0,                     // Outside temperature
   EPD_BUFFER_HEIGHT,     // Weather Report
 
-  EPD_BUFFER_HEIGHT*4,   // Livingroom temperature
-  EPD_BUFFER_HEIGHT*5,   // Livingroom humidity
-  EPD_BUFFER_HEIGHT*6,   // Livingroom CO2
+  EPD_BUFFER_HEIGHT*3,   // Livingroom temperature
+  EPD_BUFFER_HEIGHT*4,   // Livingroom humidity
+  EPD_BUFFER_HEIGHT*5,   // Livingroom CO2
 
-  EPD_BUFFER_HEIGHT*8,   // Basement temperature
-  EPD_BUFFER_HEIGHT*9,   // Basement humidity
+  EPD_BUFFER_HEIGHT*7,   // Basement temperature
+  EPD_BUFFER_HEIGHT*8,   // Basement humidity
 
   EPD_WIDTH-EPD_BUFFER_HEIGHT,                    // Uptime
 };
@@ -91,6 +91,7 @@ void onMessage(const char* topic, const uint8_t* payload, uint16_t length) {
           i++; 
         }
         weather[i] = '\0';
+        update = true;
     }
 }
 
@@ -312,7 +313,15 @@ void updateEpd()
       break;
 
     case (2):  
-      paint.DrawStringAt(5+MAX_WIDTH_FONT, 0, weather, &Font24, COLORED);    
+      if ((weather[0] == 'S')&& (weather[1] == 'n')) // Workaround for ø...
+      {
+        paint.DrawCharAt(5+2*MAX_WIDTH_FONT, 2, '/', &Font24, COLORED); 
+        paint.DrawStringAt(5, 0, "Sno!", &Font24, COLORED);    
+      }
+      else
+      {
+        paint.DrawStringAt(5, 0, weather, &Font24, COLORED);    
+      }
       DrawHANumberInFont24At(237, 0, &tempFuture, 1, COLORED);
       DrawCelciusInFont24At(248, 0, COLORED);
       break;
