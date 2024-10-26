@@ -25,7 +25,7 @@ char pass[] = SECRET_PASS;    // your network password
 int status = WL_IDLE_STATUS;
 
 // MQTT device stuff for Home Assistant
-byte mac[] = SECRET_MAC;      // can we get a mac directly from the winc?
+byte mac[6];                        // we get the mac from the winc
 char ha_user[] = SECRET_HA_USER;    // the device homeassistant (mqtt) username
 char ha_pass[] = SECRET_HA_PASS;    // the device homeassistant (mqtt) password
 HADevice device(mac, sizeof(mac));
@@ -60,6 +60,10 @@ Epd epd;
 #define EPD_BUFFER_HEIGHT (8 * 3) //width should be the multiple of 8 
 unsigned char image[EPD_BUFFER_HEIGHT*EPD_HEIGHT/8];
 Paint paint(image, EPD_BUFFER_HEIGHT, EPD_HEIGHT);    
+
+#define EPD_POSITION_TEXT 5
+#define EPD_POSITION_VALUE_RIGHTALIGN (EPD_HEIGHT-4*MAX_WIDTH_FONT+5)
+#define EPD_POSITION_UNIT_LEFTALIGN (EPD_HEIGHT-3*MAX_WIDTH_FONT-5)
 
 #define COLORED     0
 #define UNCOLORED   1
@@ -140,14 +144,16 @@ void setup()
     }
     else
     {
-      // wait 10 seconds for connection:
-      delay(10000);
+      // wait 2 seconds for connection:
+      delay(2000);
     }
   }
 
   // Set Home Assistant device details
-  device.setName("AVR-IoT eInk");
+  device.setName("AVR-IoT ePaper");
   device.setSoftwareVersion("1.0.0");
+  WiFi.macAddress(mac);
+  device.setUniqueId(mac, sizeof(mac));
 
   // Configure Home Assistant sensor Temperature Report
   tempFuture.onCommand(onNumberCommand);
@@ -227,7 +233,7 @@ void loop()
     // Attempt to reconnect
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection
-    delay(10000);
+    delay(2000);
   }
 
   // Wifi connected
@@ -307,58 +313,58 @@ void updateEpd()
       break;
 
     case (1):  
-      paint.DrawStringAt(5, 0, "Ute", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &tempOut, 1, COLORED);
-      DrawCelciusInFont24At(248, 0, COLORED);
+      paint.DrawStringAt(EPD_POSITION_TEXT, 0, "Ute", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &tempOut, 1, COLORED);
+      DrawCelciusInFont24At(EPD_POSITION_UNIT_LEFTALIGN+3, 0, COLORED);
       break;
 
     case (2):  
       if ((weather[0] == 'S')&& (weather[1] == 'n')) // Workaround for ø...
       {
-        paint.DrawCharAt(5+2*MAX_WIDTH_FONT, 2, '/', &Font24, COLORED); 
-        paint.DrawStringAt(5, 0, "Sno!", &Font24, COLORED);    
+        paint.DrawCharAt(EPD_POSITION_TEXT+2*MAX_WIDTH_FONT, 2, '/', &Font24, COLORED); 
+        paint.DrawStringAt(EPD_POSITION_TEXT, 0, "Sno!", &Font24, COLORED);    
       }
       else
       {
-        paint.DrawStringAt(5, 0, weather, &Font24, COLORED);    
+        paint.DrawStringAt(EPD_POSITION_TEXT, 0, weather, &Font24, COLORED);    
       }
-      DrawHANumberInFont24At(237, 0, &tempFuture, 1, COLORED);
-      DrawCelciusInFont24At(248, 0, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &tempFuture, 1, COLORED);
+      DrawCelciusInFont24At(EPD_POSITION_UNIT_LEFTALIGN+3, 0, COLORED);
       break;
 
     case (3):
-      paint.DrawStringAt(5, 0, "Stove", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &tempUp, 1, COLORED);  
-      DrawCelciusInFont24At(248, 0, COLORED);    
+      paint.DrawStringAt(EPD_POSITION_TEXT, 0, "Stove", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &tempUp, 1, COLORED);  
+      DrawCelciusInFont24At(EPD_POSITION_UNIT_LEFTALIGN+3, 0, COLORED);    
       break;
 
     case (4):
-      paint.DrawStringAt(245, 0, "%", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &humidUp, 1, COLORED);
+      paint.DrawStringAt(EPD_POSITION_UNIT_LEFTALIGN, 0, "%", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &humidUp, 1, COLORED);
       break;
 
-    case (5):
-      paint.DrawStringAt(245, 0, "ppm", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &co2In, 1, COLORED);
+    case (EPD_POSITION_TEXT):
+      paint.DrawStringAt(EPD_POSITION_UNIT_LEFTALIGN, 0, "ppm", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &co2In, 1, COLORED);
       break;
 
     case (6):
-      paint.DrawStringAt(5, 0, "Kjellar", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &tempDown, 1, COLORED); 
-      DrawCelciusInFont24At(248, 0, COLORED);   
+      paint.DrawStringAt(EPD_POSITION_TEXT, 0, "Kjellar", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &tempDown, 1, COLORED); 
+      DrawCelciusInFont24At(EPD_POSITION_UNIT_LEFTALIGN+3, 0, COLORED);   
       break;
 
     case (7):
-      paint.DrawStringAt(245, 0, "%", &Font24, COLORED);
-      DrawHANumberInFont24At(237, 0, &humidDown, 1, COLORED);
+      paint.DrawStringAt(EPD_POSITION_UNIT_LEFTALIGN, 0, "%", &Font24, COLORED);
+      DrawHANumberInFont24At(EPD_POSITION_VALUE_RIGHTALIGN, 0, &humidDown, 1, COLORED);
       break;
 
     case (8): 
-      paint.DrawStringAt(5, 0, "Oppetid", &Font24, COLORED);
-      paint.DrawStringAt(245, 0, "min", &Font24, COLORED);
+      paint.DrawStringAt(EPD_POSITION_TEXT, 0, "Oppetid", &Font24, COLORED);
+      paint.DrawStringAt(EPD_POSITION_UNIT_LEFTALIGN, 0, "min", &Font24, COLORED);
       char stringBuf[5];
       itoa(millis()/60000ul, stringBuf, 10);
-      paint.DrawStringAt(237-MAX_WIDTH_FONT*strlen(stringBuf), 0, stringBuf, &Font24, COLORED);    
+      paint.DrawStringAt(EPD_POSITION_VALUE_RIGHTALIGN-MAX_WIDTH_FONT*strlen(stringBuf), 0, stringBuf, &Font24, COLORED);    
       break;
 
     default:

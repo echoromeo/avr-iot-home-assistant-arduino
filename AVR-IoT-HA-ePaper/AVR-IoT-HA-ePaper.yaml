@@ -8,37 +8,50 @@ action:
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_temperature_1') | float }}"
+      value: "{{ states('sensor.temperature_upstairs') | float }}"
     target:
-      entity_id: number.avr_iot_eink_temperature_outside
+      entity_id: number.avr_iot_epaper_temperature_upstairs
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_temperature_2') | float }}"
+      value: "{{ states('sensor.temperature_outdoor') | float }}"
     target:
-      entity_id: number.avr_iot_eink_temperature_upstairs
+      entity_id: number.avr_iot_epaper_temperature_outdoor
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_temperature_3') | float }}"
+      value: "{{ states('sensor.co2_indoor') | int }}"
     target:
-      entity_id: number.avr_iot_eink_temperature_downstairs
+      entity_id: number.avr_iot_epaper_co2_indoor
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_co2') | int }}"
+      value: "{{ states('sensor.humidity_downstairs') | int }}"
     target:
-      entity_id: number.avr_iot_eink_co2_indoor
+      entity_id: number.avr_iot_epaper_humidity_downstairs
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_humidity_1') | int }}"
+      value: "{{ states('sensor.humidity_upstairs') | int }}"
     target:
-      entity_id: number.avr_iot_eink_humidity_upstairs
+      entity_id: number.avr_iot_epaper_humidity_upstairs
   - action: number.set_value
     metadata: {}
     data:
-      value: "{{ states('sensor.my_ha_humidity_2') | int }}"
+      value: "{{ states('sensor.temperature_downstairs') | float }}"
     target:
-      entity_id: number.avr_iot_eink_humidity_downstairs
+      entity_id: number.avr_iot_epaper_temperature_downstairs
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: "{{ states('sensor.forecast_temperature') | float }}"
+    target:
+      entity_id: number.avr_iot_epaper_temperature_report
+  - action: mqtt.publish
+    metadata: {}
+    data:
+      retain: true
+      topic: myWeather
+      payload: |
+        {{ states('sensor.forecast_today') }} 
 mode: single
