@@ -5,7 +5,7 @@
   Libraries:
   * WiFi101 by Arduino
   * home-assistant-integration by David Chyrzynski
-  * waveshare e-Paper repo: https://github.com/waveshareteam/e-Paper/tree/master/Arduino
+  * FAB_LED repo: https://github.com/sonyhome/FAB_LED
 
  */
 #include <Wire.h>
@@ -27,15 +27,19 @@ int status = WL_IDLE_STATUS;
 apa106<D,4>  strip;
 
 // How many pixels to control
-const uint8_t numPixels = 25;
+const uint8_t numPixels = 26;
 
 // How bright the LEDs will be (max 255)
 const uint8_t maxBrightness = 160;
 
 // The pixel array to display
 rgb  pixels[numPixels] = {};
+uint8_t tree_mapping[numPixels] = {11, 7, 4, 13, 22, 16, 25, 10,
+                                  2, 8, 5, 14, 23, 17, 20, 1,
+                                  3, 9, 6, 15, 12, 18, 21, 24,
+                                  19, 26};
 
-#define NEXT_UPDATE_TIME (200)
+#define NEXT_UPDATE_TIME (100)
 unsigned long lastUpdateAt = 0;
 
 // MQTT device stuff for Home Assistant
@@ -72,6 +76,7 @@ void setup()
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
   strip.clear(2 * numPixels);
+  pixels[tree_mapping[0]-1].g = random(maxBrightness);
 
   // Configure SW1
   pinMode(PIN_SW1, INPUT_PULLUP);
@@ -180,30 +185,35 @@ void loop()
   if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME)
   {
     lastUpdateAt = millis();
+    uint8_t today = adventDay.getCurrentState().toInt8();
+    if (today > 24)
+    {
+      today = 1;
+    }
 
     // We pick ONE pixel and change its color.
-    uint8_t pos = random(numPixels);
-    if (adventDay.getCurrentState().toInt8() < pos)
+    uint8_t pos = random(0, numPixels);
+    if (pos > today)
     {
-      pixels[pos].r = random(maxBrightness/2);
-      pixels[pos].g = random(maxBrightness/2);
-      pixels[pos].b = random(maxBrightness/2);
-
-      // Display the pixels on the LED strip.
-      strip.sendPixels(numPixels, pixels);
-      strip.refresh(); // Hack: needed for apa102 to display last pixels
+      pos = tree_mapping[pos]-1;
+      pixels[pos].r = random(maxBrightness/3);
+      pixels[pos].g = random(maxBrightness/2)/2;
+      pixels[pos].b = random(maxBrightness/3);
     }
     else
     {
       // We update the others every now and then
-      for (uint8_t i=0; i < adventDay.getCurrentState().toInt8(); i++)
+      for (uint8_t i=0; i < today; i++)
       {
-        pixels[pos].r = 0;
-        pixels[pos].g = random(maxBrightness);
-        pixels[pos].b = 0;
+        pixels[tree_mapping[i]-1].r = 0;
+        pixels[tree_mapping[i]-1].g = random(maxBrightness);
+        pixels[tree_mapping[i]-1].b = 0;
       }
     }    
-  }
 
+    // Display the pixels on the LED strip.
+    strip.sendPixels(numPixels, pixels);
+    strip.refresh(); // Hack: needed for apa102 to display last pixels
+  }
 }
 
