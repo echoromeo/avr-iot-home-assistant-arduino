@@ -14,12 +14,29 @@
 #include <ArduinoHA.h>
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
+#include <FAB_LED.h>
 
 // Wifi client stuff for the winc1510
 WiFiClient client;
 char ssid[] = SECRET_SSID;    // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password
 int status = WL_IDLE_STATUS;
+
+// LED stuff
+// Declare the LED protocol and the port
+apa106<D,4>  strip;
+
+// How many pixels to control
+const uint8_t numPixels = 25;
+
+// How bright the LEDs will be (max 255)
+const uint8_t maxBrightness = 160;
+
+// The pixel array to display
+rgb  pixels[numPixels] = {};
+
+#define NEXT_UPDATE_TIME (200)
+unsigned long lastUpdateAt = 0;
 
 // MQTT device stuff for Home Assistant
 byte mac[6];                        // we get the mac from the winc
@@ -54,6 +71,7 @@ void setup()
   digitalWrite(LED_GREEN, HIGH);
   pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH);
+  strip.clear(2 * numPixels);
 
   // Configure SW1
   pinMode(PIN_SW1, INPUT_PULLUP);
@@ -157,5 +175,35 @@ void loop()
   {
       digitalWrite(LED_CONN, HIGH);
   }
+
+    // Update LEDs every NEXT_UPDATE_TIME
+  if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME)
+  {
+    lastUpdateAt = millis();
+
+    // We pick ONE pixel and change its color.
+    uint8_t pos = random(numPixels);
+    if (adventDay.getCurrentState().toInt8() < pos)
+    {
+      pixels[pos].r = random(maxBrightness/2);
+      pixels[pos].g = random(maxBrightness/2);
+      pixels[pos].b = random(maxBrightness/2);
+
+      // Display the pixels on the LED strip.
+      strip.sendPixels(numPixels, pixels);
+      strip.refresh(); // Hack: needed for apa102 to display last pixels
+    }
+    else
+    {
+      // We update the others every now and then
+      for (uint8_t i=0; i < adventDay.getCurrentState().toInt8(); i++)
+      {
+        pixels[pos].r = 0;
+        pixels[pos].g = random(maxBrightness);
+        pixels[pos].b = 0;
+      }
+    }    
+  }
+
 }
 
