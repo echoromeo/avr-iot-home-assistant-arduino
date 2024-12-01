@@ -38,7 +38,7 @@ void onNumberCommand(HANumeric number, HANumber* sender)
     sender->setState(number); // report the selected option back to the HA panel
 }
 
-void onSwitchCommand(HASwitch sw, HANumber* sender)
+void onSwitchCommand(bool sw, HASwitch* sender)
 {
     sender->setState(sw); // report the selected option back to the HA panel
 }
@@ -145,8 +145,7 @@ void loop()
     if (!digitalRead(PIN_SW1))
     {
       // toggle onOff
-
-      update = true;
+      onOff.setState(!onOff.getCurrentState());
     }
 
     // if onOff update neopixels
