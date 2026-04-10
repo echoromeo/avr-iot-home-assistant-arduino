@@ -16,6 +16,18 @@
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
 
+// Turn on/off SerialCOM for debugging/deployment
+#define DEBUG_SERIAL 1   // 1: send terminal messages; 0: quiet for deployment
+
+#if DEBUG_SERIAL
+  #define DBG_BEGIN(x)      SerialCOM.begin(x)
+  #define DBG_PRINT(...)    SerialCOM.print(__VA_ARGS__)
+  #define DBG_PRINTLN(...)  SerialCOM.println(__VA_ARGS__)
+#else
+  #define DBG_BEGIN(x)
+  #define DBG_PRINT(...)
+  #define DBG_PRINTLN(...)
+#endif
 
 // Wifi client stuff for the winc1510
 WiFiClient client;
@@ -55,7 +67,7 @@ void setup()
   digitalWrite(LED_BLUE, HIGH);
 
    // Initialize serial communication for debugging
-  SerialCOM.begin(115200);
+  DBG_BEGIN(115200);
   
   // Set WiFi module pins
   WiFi.setPins(
@@ -68,11 +80,11 @@ void setup()
   // Initialize MCP9808 sensor
   if (mcp9808.begin(ADDRESS_I2C_MCP9808))
   {
-    SerialCOM.print("MCP9808 online");
+    DBG_PRINT("MCP9808 online");
   }
   else
   {
-    SerialCOM.print("Couldn't find MCP9808!");
+    DBG_PRINT("Couldn't find MCP9808!");
     digitalWrite(LED_ERROR, LOW);
   }
 
@@ -83,13 +95,13 @@ void setup()
   // Attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
   {
-    SerialCOM.print("Attempting to connect WiFi: ");
-    SerialCOM.println(ssid);
+    DBG_PRINT("Attempting to connect WiFi: ");
+    DBG_PRINTLN(ssid);
     status = WiFi.begin(ssid, pass);
 
     if (status == WL_CONNECTED)
     {
-      SerialCOM.println("WINC1510 online");
+      DBG_PRINTLN("WINC1510 online");
       printWiFiStatus();
       digitalWrite(LED_WIFI, LOW);
     }
@@ -160,17 +172,17 @@ void loop() {
 
 void printWiFiStatus() {
   // print the SSID of the network you're attached to:
-  SerialCOM.print("SSID: ");
-  SerialCOM.println(WiFi.SSID());
+  DBG_PRINT("SSID: ");
+  DBG_PRINTLN(WiFi.SSID());
 
   // print your WiFi shield's IP address:
   IPAddress ip = WiFi.localIP();
-  SerialCOM.print("IP Address: ");
-  SerialCOM.println(ip);
+  DBG_PRINT("IP Address: ");
+  DBG_PRINTLN(ip);
 
   // print the received signal strength:
   long rssi = WiFi.RSSI();
-  SerialCOM.print("signal strength (RSSI):");
-  SerialCOM.print(rssi);
-  SerialCOM.println(" dBm");
+  DBG_PRINT("signal strength (RSSI):");
+  DBG_PRINT(rssi);
+  DBG_PRINTLN(" dBm");
 }
