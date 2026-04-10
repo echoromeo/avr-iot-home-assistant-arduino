@@ -36,11 +36,11 @@ char pass[] = SECRET_PASS;    // your network password
 int status = WL_IDLE_STATUS;
 
 // MQTT device stuff for Home Assistant
-byte mac[] = SECRET_MAC;      // can we get a mac directly from the winc?
+byte mac[6];                        // to be filled with actual MAC address
 char ha_user[] = SECRET_HA_USER;    // the device homeassistant (mqtt) username
 char ha_pass[] = SECRET_HA_PASS;    // the device homeassistant (mqtt) password
-HADevice device(mac, sizeof(mac));
-HAMqtt mqtt(client, device);
+HADevice device;                    // use in setup()
+HAMqtt* mqtt;                       // use in setup(), needs HADevice from previous line
 
 // Home Assistant entities stuff
 // "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
@@ -113,6 +113,8 @@ void setup()
   }
 
   // Set Home Assistant device details
+  WiFi.macAddress(mac);
+  device.setUniqueId(mac, sizeof(mac));
   device.setName("AVR-IoT");
   device.setSoftwareVersion("1.0.0");
 
@@ -125,7 +127,8 @@ void setup()
   temperatureSensor.setUnitOfMeasurement("°C");
 
   // Connect to Home Assistant MQTT broker  
-  mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
+  mqtt = new HAMqtt(client, device);
+  mqtt->begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
 void loop() {
@@ -134,10 +137,10 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
   {
 	  digitalWrite(LED_WIFI, LOW);
-    mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
+    mqtt->loop(); // This maintains the mqtt connection and reconnects (and sends data)
     
     // Check if MQTT is connected
-    if (mqtt.isConnected())
+    if (mqtt->isConnected())
     {
       digitalWrite(LED_CONN, LOW);
       
@@ -156,7 +159,7 @@ void loop() {
           digitalWrite(LED_DATA, HIGH);
       }
     }
-    else // !mqtt.isConnected()
+    else // !mqtt->isConnected()
     {
         digitalWrite(LED_CONN, HIGH);
     }
@@ -174,6 +177,21 @@ void printWiFiStatus() {
   // print the SSID of the network you're attached to:
   DBG_PRINT("SSID: ");
   DBG_PRINTLN(WiFi.SSID());
+
+  // print your WiFi shield's MAC address:
+  WiFi.macAddress(mac);
+  DBG_PRINT("MAC: ");       //note the bytes are "backwards"
+  DBG_PRINT(mac[5],HEX);
+  DBG_PRINT(":");
+  DBG_PRINT(mac[4],HEX);
+  DBG_PRINT(":");
+  DBG_PRINT(mac[3],HEX);
+  DBG_PRINT(":");
+  DBG_PRINT(mac[2],HEX);
+  DBG_PRINT(":");
+  DBG_PRINT(mac[1],HEX);
+  DBG_PRINT(":");
+  DBG_PRINTLN(mac[0],HEX);
 
   // print your WiFi shield's IP address:
   IPAddress ip = WiFi.localIP();
