@@ -24,7 +24,10 @@ This project is an AVR-IoT Home Assistant MQTT Client using the ATmega4808 micro
 The following secrets need to be defined in the separate `arduino_secrets.h` file:
 - `SECRET_SSID`: Your WiFi network SSID.
 - `SECRET_PASS`: Your WiFi network password.
-- `SECRET_MAC`: The MAC address of your device.
 - `SECRET_HA_USER`: The Home Assistant (MQTT) username.
 - `SECRET_HA_PASS`: The Home Assistant (MQTT) password.
 - `SECRET_BROKER`: The MQTT broker address.
+
+In the `AVR-IoT-HA.ino file`, you can turn off the terminal output entirely by selecting:
+`#define DEBUG_SERIAL 0` 
+This will save a few hundred bytes of Flash.
