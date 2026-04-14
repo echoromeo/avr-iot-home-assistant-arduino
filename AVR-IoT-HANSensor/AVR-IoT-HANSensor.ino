@@ -141,7 +141,8 @@ void setup()
 void loop() {
 
   // Always have a valid last power value
-  uint16_t lastPowerValue = 0;
+  uint16_t lastPowerValue = 1;
+  uint16_t newPowerValue = 0;
   
   // Check if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
@@ -154,6 +155,11 @@ void loop() {
     {
       digitalWrite(LED_CONN, LOW);
       
+      // readFrameValue() is asynchronous (takes up to 0.5s every 2s), timing is better this way
+      if (readFrameValue(newPowerValue))       
+          {                                     
+            lastPowerValue = newPowerValue;     
+          }
       
       // Update sensor data every 10 seconds
       if ((millis() - lastUpdateAt) > 10000) {
@@ -161,10 +167,7 @@ void loop() {
        
           brightnessSensor.setValue(readLightPct());
           temperatureSensor.setValue(mcp9808.readTempC());
-          if (readFrameValue(lastPowerValue))
-          {
-            activepowerSensor.setValue(lastPowerValue);
-          }
+          activepowerSensor.setValue(lastPowerValue);
                 
           DBG_PRINT("Inside the 10s updating loop, last power value is: ");
           DBG_PRINT(lastPowerValue);

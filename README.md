@@ -15,6 +15,7 @@ This project is an AVR-IoT Home Assistant MQTT Client using the ATmega4808 micro
 - AVR-IoT WG Development Board
 - micro-USB Cable
 - Optional Battery
+- For the HANSEensor: a [mikroE M-Bus Slave board](https://www.mikroe.com/m-bus-slave-click) and a [Norwegian utility meter with "open" HAN port](https://www.nek.no/info-ams-han-utviklere/). 
 
 ## Software Requirements
 - Arduino IDE with MegaCoreX installed
