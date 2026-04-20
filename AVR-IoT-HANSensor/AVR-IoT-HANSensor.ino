@@ -17,7 +17,7 @@
 #include "arduino_secrets.h" 
 
 // Turn on/off SerialCOM for debugging/deployment
-#define DEBUG_SERIAL 1   // 1: send terminal messages; 0: quiet for deployment
+#define DEBUG_SERIAL 0   // 1: send terminal messages; 0: quiet for deployment
 
 #if DEBUG_SERIAL
   #define DBG_BEGIN(x)      SerialCOM.begin(x)
@@ -119,30 +119,33 @@ void setup()
   // Set Home Assistant device details
   WiFi.macAddress(mac);
   device.setUniqueId(mac, sizeof(mac));
-  device.setName("AVR-IoT");
+  device.setName("AVR-IoT HAN Sensor");
   device.setSoftwareVersion("1.0.0");
-
+  
   // Configure Home Assistant sensors
   brightnessSensor.setIcon("mdi:brightness-percent");
   brightnessSensor.setName("Brightness");
   brightnessSensor.setUnitOfMeasurement("%");
+  
   temperatureSensor.setIcon("mdi:thermometer");
   temperatureSensor.setName("Temperature");
   temperatureSensor.setUnitOfMeasurement("°C");
+  
   activepowerSensor.setIcon("mdi:home-lightning-bolt-outline");
   activepowerSensor.setName("HAN Power");
   activepowerSensor.setUnitOfMeasurement("W");
-
+  
   // Connect to Home Assistant MQTT broker  
   mqtt = new HAMqtt(client, device);
+  mqtt->setDiscoveryPrefix("homeassistant");
   mqtt->begin(SECRET_BROKER, ha_user, ha_pass);
 }
 
 void loop() {
 
   // Always have a valid last power value
-  uint16_t lastPowerValue = 1;
-  uint16_t newPowerValue = 0;
+  //uint16_t lastPowerValue;
+  uint16_t newPowerValue;
   
   // Check if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
@@ -158,7 +161,7 @@ void loop() {
       // readFrameValue() is asynchronous (takes up to 0.5s every 2s), timing is better this way
       if (readFrameValue(newPowerValue))       
           {                                     
-            lastPowerValue = newPowerValue;     
+            return newPowerValue;     
           }
       
       // Update sensor data every 10 seconds
@@ -167,7 +170,7 @@ void loop() {
        
           brightnessSensor.setValue(readLightPct());
           temperatureSensor.setValue(mcp9808.readTempC());
-          activepowerSensor.setValue(lastPowerValue);
+          activepowerSensor.setValue(newPowerValue);
                 
           DBG_PRINT("Inside the 10s updating loop, last power value is: ");
           DBG_PRINT(lastPowerValue);
