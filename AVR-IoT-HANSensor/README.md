@@ -131,9 +131,39 @@ D3 4F, 7E    					// checksum?,  EOF
 
 ## What's left?
 ### Known issues
-* Lists of types 2 and 3 are currently discarded. Effectively, this drops a frame every now and then
+* Lists of types 2 and 3 are currently not properly detected. Effectively, the energy values and the power->out are never updated
 * The MQTT discovery in HA doesn't work for me (but the MQTT payloads from AVR-IoT arrive at the broker, and can be read from there)
 
+For now, this is what I add in my `configuration.yaml` (you'll need to change the mac address to the actual one of your AVR-IoT board):
+
+```
+mqtt:                                                                                                                                  
+ sensor:                                                                                                                               
+   - name: "HAN Power +"                                                                                                               
+     state_topic: "aha/cce7aa05f0f8/iotHANSensorPowerPlus/stat_t"                                                                      
+     unit_of_measurement: "W"                                                                                                          
+     device_class: "power"                                                                                                             
+     state_class: "measurement"                                                                                                        
+     value_template: "{{ value | int }}"                                                                                               
+   - name: "HAN Power -"                                                                                                              
+     state_topic: "aha/cce7aa05f0f8/iotHANSensorPowerMinus/stat_t"                                                                     
+     unit_of_measurement: "W"                                                                                                          
+     device_class: "power"                                                                                                             
+     state_class: "measurement"                                                                                                        
+     value_template: "{{ value | int }}"                                                                                               
+   - name: "HAN Energy Import"                                                                                                         
+     state_topic: "aha/cce7aa05f0f8/iotHANSensorEnergyIn/stat_t"                                                                       
+     unit_of_measurement: "W"                                                                                                          
+     device_class: "energy"                                                                                                            
+     state_class: "measurement"                                                                                                        
+     value_template: "{{ value | int }}"                                                                                               
+   - name: "HAN Energy Export"                                                                                                         
+     state_topic: "aha/cce7aa05f0f8/iotHANSensorEnergyOut/stat_t"                                                                      
+     unit_of_measurement: "W"                                                                                                          
+     device_class: "energy"                                                                                                            
+     state_class: "measurement"                                                                                                        
+     value_template: "{{ value | int }}" 
+```
 
 ### Features to do
 * Fix known issues

@@ -8,6 +8,8 @@
   * Adafruit MCP9808 Library by Adafruit
 
  */
+#define SERIAL_RX_BUFFER_SIZE 256 // increase from default 64, so Serial1 will cope better with long lists from the HAN port
+
 #include <Wire.h>
 #include <SPI.h>
 #include <WiFi101.h>
@@ -46,7 +48,11 @@ HAMqtt* mqtt;                       // use in setup(), needs HADevice from previ
 // "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
 HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
 HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
-HASensorNumber activepowerSensor("iotHANSensor", HASensorNumber::PrecisionP0);
+HASensorNumber activePowerPlusSensor("iotHANSensorPowerPlus", HASensorNumber::PrecisionP0);
+HASensorNumber activePowerMinusSensor("iotHANSensorPowerMinus", HASensorNumber::PrecisionP0);
+HASensorNumber activeEnergyInSensor("iotHANSensorEnergyIn", HASensorNumber::PrecisionP0);
+HASensorNumber activeEnergyOutSensor("iotHANSensorEnergyOut", HASensorNumber::PrecisionP0);
+
 Adafruit_MCP9808 mcp9808 = Adafruit_MCP9808();
 unsigned long lastUpdateAt = 0;
 
@@ -54,6 +60,15 @@ unsigned long lastUpdateAt = 0;
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP1);
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP2);
 // HASensorNumber brightnessSensor("myAnalogInput", HASensorNumber::PrecisionP3);
+
+// The payload, to be read from the utility meter 
+struct FrameValues {
+    uint16_t activePlus;
+    uint16_t activeMinus;
+    uint32_t energyImport;
+    uint32_t energyExport;
+};
+FrameValues fv;
 
 void setup()
 {
@@ -131,22 +146,38 @@ void setup()
   temperatureSensor.setName("Temperature");
   temperatureSensor.setUnitOfMeasurement("°C");
   
-  activepowerSensor.setIcon("mdi:home-lightning-bolt-outline");
-  activepowerSensor.setName("HAN Power");
-  activepowerSensor.setUnitOfMeasurement("W");
+  activePowerPlusSensor.setIcon("mdi:home-lightning-bolt-outline");
+  activePowerPlusSensor.setName("HAN Power Active +");
+  activePowerPlusSensor.setUnitOfMeasurement("W");
+
+  activePowerMinusSensor.setIcon("mdi:home-lightning-bolt");
+  activePowerMinusSensor.setName("HAN Power Active -");
+  activePowerMinusSensor.setUnitOfMeasurement("W");
+
+  activeEnergyInSensor.setIcon("mdi:home-import-outline");
+  activeEnergyInSensor.setName("HAN Energy Import");
+  activeEnergyInSensor.setUnitOfMeasurement("kWh");
+
+
+  activeEnergyOutSensor.setIcon("mdi:home-export-outline");
+  activeEnergyOutSensor.setName("HAN Energy Export");
+  activeEnergyOutSensor.setUnitOfMeasurement("kWh");
+
   
   // Connect to Home Assistant MQTT broker  
   mqtt = new HAMqtt(client, device);
   mqtt->setDiscoveryPrefix("homeassistant");
   mqtt->begin(SECRET_BROKER, ha_user, ha_pass);
+
+  //Initialize with non-zero values, just to make sure the data comes through  
+  fv.activePlus = 1;    // every two seconds
+  fv.activeMinus = 1;   // every ten seconds
+  fv.energyImport = 1;  // only every 3600 seconds
+  fv.energyExport = 1;  // together with energyImport
 }
 
 void loop() {
 
-  // Always have a valid last power value
-  //uint16_t lastPowerValue;
-  uint16_t newPowerValue;
-  
   // Check if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
   {
@@ -159,10 +190,8 @@ void loop() {
       digitalWrite(LED_CONN, LOW);
       
       // readFrameValue() is asynchronous (takes up to 0.5s every 2s), timing is better this way
-      if (readFrameValue(newPowerValue))       
-          {                                     
-            return newPowerValue;     
-          }
+      readFrameValue(fv);    //update data, leave the previous untouched if list type too short
+          
       
       // Update sensor data every 10 seconds
       if ((millis() - lastUpdateAt) > 10000) {
@@ -170,7 +199,10 @@ void loop() {
        
           brightnessSensor.setValue(readLightPct());
           temperatureSensor.setValue(mcp9808.readTempC());
-          activepowerSensor.setValue(newPowerValue);
+          activePowerPlusSensor.setValue(fv.activePlus);
+          activePowerMinusSensor.setValue(fv.activeMinus);
+          activeEnergyInSensor.setValue(fv.energyImport);
+          activeEnergyOutSensor.setValue(fv.energyExport);
                 
           DBG_PRINT("Inside the 10s updating loop, last power value is: ");
           DBG_PRINT(lastPowerValue);
@@ -232,7 +264,7 @@ void printWiFiStatus() {
 }
 
 // USART Frame Parser
-bool readFrameValue(uint16_t &valueOut) {
+bool readFrameValue(FrameValues &out) {
   static uint8_t buffer[157];   // // Buffer for incoming data, max. is OBIS List 3
   static uint8_t index = 0;
 
@@ -240,7 +272,9 @@ bool readFrameValue(uint16_t &valueOut) {
     WAIT_7E,
     WAIT_A0,
     WAIT_LEN,
-    READ_FRAME
+    READ_LIST1,
+    READ_LIST2,
+    READ_LIST3
   };
   static uint8_t state = WAIT_7E;
 
@@ -270,23 +304,33 @@ bool readFrameValue(uint16_t &valueOut) {
         break;
 
       case WAIT_LEN:      // Sent here from WAIT_A0 only, get list length
-        if (b == 0x27) {        // List Type 1. TODO: other list types
+        if (b == 0x27) {        // List Type 1
           buffer[index++] = b;
-          state = READ_FRAME;   // We have a go
-        } else {                // Discard, move to WAIT_7E
+          state = READ_LIST1;   // We have a go
+        }
+        else if (b == 0x79) {   // List Type 2
+          buffer[index++] = b;
+          state = READ_LIST2;   // We have a go
+        } 
+
+        else if (b == 0x9B) {   // List Type 3
+          buffer[index++] = b;
+          state = READ_LIST3;   // We have a go
+        } 
+        else {                // Discard, move to WAIT_7E
           state = WAIT_7E;
           index = 0;
         }
         break;
 
-      case READ_FRAME:        // We'll get here only after list 1 sequence 0x7E 0xA0 0x27
+      case READ_LIST1:        // We'll get here only after list 1 sequence 0x7E 0xA0 0x27
         buffer[index++] = b;
 
         if (index == 41) {    // List type 1 is over, but didn't get list end
           state = WAIT_7E;    //  discard list and wait for next start
 
           if (buffer[40] == 0x7E) {           // Entire list read successsfully
-            valueOut =                        // Read active power in W
+            out.activePlus =                        // Read active power in W
               ((uint16_t)buffer[36] << 8) |   // (The list is using four bytes, but
                buffer[37];                    // 64KW ought to be enough for anybody)
             index = 0;
@@ -297,6 +341,67 @@ bool readFrameValue(uint16_t &valueOut) {
           index = 0;
         }
         break;
+
+
+      case READ_LIST2:        // We'll get here only after list 2 sequence 0x7E 0xA0 0x79
+        buffer[index++] = b;
+
+        if (index == 123) {    // List type 2 is over, but didn't get list end
+          state = WAIT_7E;    //  discard list and wait for next start
+
+          if (buffer[122] == 0x7E) {           // Entire list read successsfully
+          out.activePlus =                        // Read "active power plus" in W
+              ((uint16_t)buffer[73] << 8) |   
+               buffer[74];                    
+            out.activeMinus =                        // Read "active power minus" in W
+              ((uint16_t)buffer[78] << 8) |   
+               buffer[79];                    
+            index = 0;
+            return true;
+          }
+
+          // bad frame, discard
+          index = 0;
+        }
+        break;
+  
+
+      case READ_LIST3:        // We'll get here only after list 1 sequence 0x7E 0xA0 0x9B
+        buffer[index++] = b;
+
+        if (index == 156) {    // List type 3 is over, but didn't get list end
+          state = WAIT_7E;    //  discard list and wait for next start
+
+          if (buffer[155] == 0x7E) {           // Entire list read successsfully
+            out.activePlus =                        // Read "active power plus" in W
+              ((uint16_t)buffer[73] << 8) |   
+               buffer[74];                    
+
+            out.activeMinus =                        // Read "active power minus" in W
+              ((uint16_t)buffer[78] << 8) |   
+               buffer[79];
+
+            out.energyImport  =                         // // cumultative active import energy	
+              ((uint32_t)buffer[134] << 24) |   
+              ((uint32_t)buffer[135] << 16) |   
+              ((uint32_t)buffer[136] << 8) |   
+               buffer[137];  
+
+             out.energyExport =                         // // cumultative active export energy	
+              ((uint32_t)buffer[139] << 24) |   
+              ((uint32_t)buffer[140] << 16) |   
+              ((uint32_t)buffer[141] << 8) |   
+               buffer[142];  
+
+            index = 0;
+            return true;
+          }
+
+          // bad frame, discard
+          index = 0;
+        }
+        break;
+    
     }
   }
   return false;
