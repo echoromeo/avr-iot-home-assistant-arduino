@@ -185,35 +185,43 @@ void loop()
   if ((millis() - lastUpdateAt) > NEXT_UPDATE_TIME)
   {
     lastUpdateAt = millis();
-    uint8_t today = adventDay.getCurrentState().toInt8();
-    if (today > 24)
-    {
-      today = 1;
-    }
 
-    // We pick ONE pixel and change its color.
-    uint8_t pos = random(0, numPixels);
-    if (pos > today)
+    if (onOff.getCurrentState())
     {
-      pos = tree_mapping[pos]-1;
-      pixels[pos].r = random(maxBrightness/3);
-      pixels[pos].g = random(maxBrightness/2)/2;
-      pixels[pos].b = random(maxBrightness/3);
+      uint8_t today = adventDay.getCurrentState().toInt8();
+      if (today > 24)
+      {
+        today = 1;
+      }
+
+      // We pick ONE pixel and change its color.
+      uint8_t pos = random(0, numPixels);
+      if (pos > today)
+      {
+        pos = tree_mapping[pos]-1;
+        pixels[pos].g = random(maxBrightness/2)/3;
+        pixels[pos].r = random(pixels[pos].g, maxBrightness/3);
+        pixels[pos].b = random(pixels[pos].g, maxBrightness/3);
+      }
+      else
+      {
+        // We update the others every now and then
+        for (uint8_t i=0; i < today; i++)
+        {
+          pixels[tree_mapping[i]-1].r = 0;
+          pixels[tree_mapping[i]-1].g = random(30, maxBrightness);
+          pixels[tree_mapping[i]-1].b = 0;
+        }
+      }    
+
+      // Display the pixels on the LED strip.
+      strip.sendPixels(numPixels, pixels);
+      strip.refresh(); // Hack: needed for apa102 to display last pixels
     }
     else
     {
-      // We update the others every now and then
-      for (uint8_t i=0; i < today; i++)
-      {
-        pixels[tree_mapping[i]-1].r = 0;
-        pixels[tree_mapping[i]-1].g = random(maxBrightness);
-        pixels[tree_mapping[i]-1].b = 0;
-      }
-    }    
-
-    // Display the pixels on the LED strip.
-    strip.sendPixels(numPixels, pixels);
-    strip.refresh(); // Hack: needed for apa102 to display last pixels
+      strip.clear(2 * numPixels);
+    }
   }
 }
 
