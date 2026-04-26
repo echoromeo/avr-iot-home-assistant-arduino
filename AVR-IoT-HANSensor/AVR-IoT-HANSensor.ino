@@ -112,24 +112,7 @@ void setup()
   //}
 
   // Attempt to connect to WiFi network:
-  while (status != WL_CONNECTED)
-  {
-    DBG_PRINT("Attempting to connect WiFi: ");
-    DBG_PRINTLN(ssid);
-    status = WiFi.begin(ssid, pass);
-
-    if (status == WL_CONNECTED)
-    {
-      DBG_PRINTLN("WINC1510 online");
-      printWiFiStatus();
-      digitalWrite(LED_WIFI, LOW);
-    }
-    else
-    {
-      // wait 10 seconds for connection:
-      delay(10000);
-    }
-  }
+  attemptWifiConnection();
 
   // Set Home Assistant device details
   WiFi.macAddress(mac);
@@ -227,7 +210,37 @@ void loop() {
     digitalWrite(LED_WIFI, HIGH);
     digitalWrite(LED_CONN, HIGH);
     digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
+    attemptWifiConnection();
   }
+}   // end loop()
+
+
+bool attemptWifiConnection()
+{
+    int status = WiFi.status();
+
+    while (status != WL_CONNECTED)
+    {
+        DBG_PRINT("Attempting to connect WiFi: ");
+        DBG_PRINTLN(ssid);
+
+        status = WiFi.begin(ssid, pass);
+
+        if (status == WL_CONNECTED)
+        {
+            DBG_PRINTLN("WINC1510 online");
+            printWiFiStatus();
+            digitalWrite(LED_WIFI, LOW);
+            return true;   // success
+        }
+        else
+        {
+            // wait 10 seconds before retrying
+            delay(10000);
+        }
+    }
+
+    return true; // already connected
 }
 
 
