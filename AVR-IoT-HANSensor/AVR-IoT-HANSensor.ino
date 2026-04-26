@@ -156,12 +156,12 @@ void setup()
 
   activeEnergyInSensor.setIcon("mdi:home-import-outline");
   activeEnergyInSensor.setName("HAN Energy Import");
-  activeEnergyInSensor.setUnitOfMeasurement("kWh");
+  activeEnergyInSensor.setUnitOfMeasurement("Wh");
 
 
   activeEnergyOutSensor.setIcon("mdi:home-export-outline");
   activeEnergyOutSensor.setName("HAN Energy Export");
-  activeEnergyOutSensor.setUnitOfMeasurement("kWh");
+  activeEnergyOutSensor.setUnitOfMeasurement("Wh");
 
   
   // Connect to Home Assistant MQTT broker  
@@ -265,7 +265,7 @@ void printWiFiStatus() {
 
 // USART Frame Parser
 bool readFrameValue(FrameValues &out) {
-  static uint8_t buffer[157];   // // Buffer for incoming data, max. is OBIS List 3
+  static uint8_t buffer[157];   // // Buffer for incoming data
   static uint8_t index = 0;
 
   enum {
@@ -308,12 +308,12 @@ bool readFrameValue(FrameValues &out) {
           buffer[index++] = b;
           state = READ_LIST1;   // We have a go
         }
-        else if (b == 0x79) {   // List Type 2
+        else if (b == 0x65) {   // List Type 2
           buffer[index++] = b;
           state = READ_LIST2;   // We have a go
         } 
 
-        else if (b == 0x9B) {   // List Type 3
+        else if (b == 0x87) {   // List Type 3
           buffer[index++] = b;
           state = READ_LIST3;   // We have a go
         } 
@@ -343,13 +343,13 @@ bool readFrameValue(FrameValues &out) {
         break;
 
 
-      case READ_LIST2:        // We'll get here only after list 2 sequence 0x7E 0xA0 0x79
+      case READ_LIST2:        // We'll get here only after list 2 sequence 0x7E 0xA0 0x65
         buffer[index++] = b;
 
-        if (index == 123) {    // List type 2 is over, but didn't get list end
+        if (index == 103) {    // List type 2 is over, but didn't get list end. 0x65 is a lie!
           state = WAIT_7E;    //  discard list and wait for next start
 
-          if (buffer[122] == 0x7E) {           // Entire list read successsfully
+          if (buffer[102] == 0x7E) {           // Entire list read successsfully
           out.activePlus =                        // Read "active power plus" in W
               ((uint16_t)buffer[73] << 8) |   
                buffer[74];                    
@@ -369,10 +369,10 @@ bool readFrameValue(FrameValues &out) {
       case READ_LIST3:        // We'll get here only after list 1 sequence 0x7E 0xA0 0x9B
         buffer[index++] = b;
 
-        if (index == 156) {    // List type 3 is over, but didn't get list end
+        if (index == 137) {    // List type 3 is over, but didn't get list end
           state = WAIT_7E;    //  discard list and wait for next start
 
-          if (buffer[155] == 0x7E) {           // Entire list read successsfully
+          if (buffer[136] == 0x7E) {           // Entire list read successsfully
             out.activePlus =                        // Read "active power plus" in W
               ((uint16_t)buffer[73] << 8) |   
                buffer[74];                    
@@ -382,16 +382,16 @@ bool readFrameValue(FrameValues &out) {
                buffer[79];
 
             out.energyImport  =                         // // cumultative active import energy	
-              ((uint32_t)buffer[134] << 24) |   
-              ((uint32_t)buffer[135] << 16) |   
-              ((uint32_t)buffer[136] << 8) |   
-               buffer[137];  
+              ((uint32_t)buffer[115] << 24) |   
+              ((uint32_t)buffer[116] << 16) |   
+              ((uint32_t)buffer[117] << 8) |   
+               buffer[118];  
 
              out.energyExport =                         // // cumultative active export energy	
-              ((uint32_t)buffer[139] << 24) |   
-              ((uint32_t)buffer[140] << 16) |   
-              ((uint32_t)buffer[141] << 8) |   
-               buffer[142];  
+              ((uint32_t)buffer[120] << 24) |   
+              ((uint32_t)buffer[121] << 16) |   
+              ((uint32_t)buffer[122] << 8) |   
+               buffer[123];  
 
             index = 0;
             return true;

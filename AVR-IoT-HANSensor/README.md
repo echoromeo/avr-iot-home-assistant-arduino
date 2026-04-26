@@ -7,16 +7,16 @@ An Arduino sketch that uses an AVR-IoT board and a [mikroE M-Bus Slave click boa
 ### Motivation
 My electric power provider is charging me (ha!) per kWh _and_ for "bandwidth". If I stay above certain thresholds (2, 5, 10 kW) for a certain time (interesting ruleset behind that) my "energiledd" or "kapasitetstrinn" will change for the next month. This information is not indicated in a regular meter display, but can be read out from the meter's HAN port. 
 
-This project hands that power value to an MQTT Broker, where it can be used by Homeassistant, which in turn could adjust the color of a warning lamp or something. If this can help you to stay under the next threshold, you'd be saving 1-2 thousand Norwegian Kroner per year for avoiding the next step in "bandwidth".
+This project reads the HAN port output and hands that power value to an MQTT Broker, where it can be used by Homeassistant, which in turn could adjust the color of a warning lamp or something. If this can help you to stay under the next threshold, you'd be saving 1-2 thousand Norwegian Kroner per year for avoiding the next step in "bandwidth".
 
 
 ### Parts used
 * AVR IoT board (doesn't matter whether it's a WG or AWS, we're not using outside forces)
     * USART1 RX is reading the click board's output
     * The output is sent to an MQTT Broker, where it can be used by Homeassistant
-* Mikroe M-Bus Slave Click - converts the 40V output from the power meter to USART TX level and format
+* MikroE M-Bus Slave Click - converts the 40V output from the power meter to USART TX level and format
 * Half of an old Ethernet cable; Pins 0 and 1 of the RJ45 go into the terminals of the MBus click, the intact end into the HAN port
-* Some power solution for the AVR-IoT
+* Some power solution for the AVR-IoT (can be via the USB port or through the LiPo battery connector)
 * The Kaifa MA105H2E, as installed at my house. The HAN port output had to be activated by the energy provider: there is now a little triangle blinking in the display, right above the "HAN" label. 
 
 I'm sure other hardware combinations will work in principle, but that's what I got. The HAN port data format is normed (OBIS in Norway), so that should work with any conforming meter.
@@ -35,28 +35,30 @@ Once every 3600s (1h), a list of type 3 is sent.
 
 ### List types
 
-I have these from places around the interwebs, as visual aid what the lists look like:
+A visual aid what the lists look like (these are not mine, but examples that check out wrt. third byte <-> frame size):
 
 
 ```
-char list1 [] =              //0x27 = 39 bytes between two 0x7E
+char list1 [] =              
     {
         0x7E, 0xA0, 0x27, 0x01, 0x02, 0x01, 0x10, 0x5A,  0x87, 0xE6, 0xE7, 0x00, 0x0F, 0x40, 0x00, 0x00,  0x00, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14, 0x00, 0x08, 0xFF, 0x80, 0x00, 0x00, 0x02,  0x01, 0x06, 0x00, 0x00, 0x03, 0xFD, 0x2B, 0x8E, 0x7E
     };
 
-char list2 [] =              //0x79 = 121 bytes between two 0x7E
+char list2 [] =              
     {
         0x7E, 0xA0, 0x79, 0x01, 0x02, 0x01, 0x10, 0x80,  0x93, 0xE6, 0xE7, 0x00, 0x0F, 0x40, 0x00, 0x00, 0x00, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14, 0x00, 0x00, 0xFF, 0x80, 0x00, 0x00, 0x02,  0x0D, 0x09, 0x07, 0x4B, 0x46, 0x4D, 0x5F, 0x30,  0x30, 0x31, 0x09, 0x10, 0x36, 0x39, 0x37, 0x30, 0x36, 0x33, 0x31, 0x34, 0x30, 0x31, 0x37, 0x35,  0x33, 0x39, 0x38, 0x35, 0x09, 0x08, 0x4D, 0x41, 0x33, 0x30, 0x34, 0x48, 0x33, 0x45, 0x06, 0x00, 0x00, 0x03, 0xFC, 0x06, 0x00, 0x00, 0x00, 0x00,  0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  0x00, 0x41, 0x06, 0x00, 0x00, 0x07, 0x8D, 0x06, 0x00, 0x00, 0x0C, 0x98, 0x06, 0x00, 0x00, 0x0D,  0x5E, 0x06, 0x00, 0x00, 0x09, 0x41, 0x06, 0x00,  0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x09, 0x4C, 0xD3, 0x4F, 0x7E
     };
 
-char list3 [] =              // 0x9B = 155 bytes between two 0x7E
+char list3 [] =              
     {
-        0xA0, 0x9B, 0x01, 0x02, 0x01, 0x10, 0xEE,  0xAE, 0xE6, 0xE7, 0x00, 0x0F, 0x40, 0x00, 0x00,  0x00, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14, 0x00, 0x0A, 0xFF, 0x80, 0x00, 0x00, 0x02,  0x12, 0x09, 0x07, 0x4B, 0x46, 0x4D, 0x5F, 0x30,  0x30, 0x31, 0x09, 0x10, 0x36, 0x39, 0x37, 0x30, 0x36, 0x33, 0x31, 0x34, 0x30, 0x31, 0x37, 0x35,  0x33, 0x39, 0x38, 0x35, 0x09, 0x08, 0x4D, 0x41,  0x33, 0x30, 0x34, 0x48, 0x33, 0x45, 0x06, 0x00, 0x00, 0x03, 0xFE, 0x06, 0x00, 0x00, 0x00, 0x00,  0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  0x00, 0x40, 0x06, 0x00, 0x00, 0x07, 0x91, 0x06, 0x00, 0x00, 0x0C, 0x9D, 0x06, 0x00, 0x00, 0x0D,  0x66, 0x06, 0x00, 0x00, 0x09, 0x41, 0x06, 0x00,  0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x09, 0x4C, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14,  0x00, 0x0A, 0xFF, 0x80, 0x00, 0x00, 0x06, 0x00,  0x02, 0xBF, 0x69, 0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0xF7, 0x06, 0x00, 0x00,  0x3F, 0xFC, 0x71, 0x71, 0x7E
+        0x7E, 0xA0, 0x9B, 0x01, 0x02, 0x01, 0x10, 0xEE,  0xAE, 0xE6, 0xE7, 0x00, 0x0F, 0x40, 0x00, 0x00,  0x00, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14, 0x00, 0x0A, 0xFF, 0x80, 0x00, 0x00, 0x02,  0x12, 0x09, 0x07, 0x4B, 0x46, 0x4D, 0x5F, 0x30,  0x30, 0x31, 0x09, 0x10, 0x36, 0x39, 0x37, 0x30, 0x36, 0x33, 0x31, 0x34, 0x30, 0x31, 0x37, 0x35,  0x33, 0x39, 0x38, 0x35, 0x09, 0x08, 0x4D, 0x41,  0x33, 0x30, 0x34, 0x48, 0x33, 0x45, 0x06, 0x00, 0x00, 0x03, 0xFE, 0x06, 0x00, 0x00, 0x00, 0x00,  0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  0x00, 0x40, 0x06, 0x00, 0x00, 0x07, 0x91, 0x06, 0x00, 0x00, 0x0C, 0x9D, 0x06, 0x00, 0x00, 0x0D,  0x66, 0x06, 0x00, 0x00, 0x09, 0x41, 0x06, 0x00,  0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x09, 0x4C, 0x09, 0x0C, 0x07, 0xE1, 0x09, 0x0E, 0x04, 0x14,  0x00, 0x0A, 0xFF, 0x80, 0x00, 0x00, 0x06, 0x00,  0x02, 0xBF, 0x69, 0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0xF7, 0x06, 0x00, 0x00,  0x3F, 0xFC, 0x71, 0x71, 0x7E
     };
 
 ```
 **Note**
-The actual meter and/or MBus slave is sending a continuous stream “0x00” between lists , so the SoF is basically never on position [0]! 
+1) The actual meter and/or MBus slave may be sending a continuous stream “0x00” between lists. Mine doesn't.
+2) The third byte is supposed to indicate the frame length. This is fine for list type 1, and the examples here, but for my untility meter the other two are strange. I do not understand the connection between their value and the actual list length for types 2 and 3. This may debend on the meter type/brand and the resulting differences in length of the string fields. I used a simple version of this code to simply dump the HAN output and extracted the lengths and the value of the third byte manually.
+
 ---
 
 
@@ -67,9 +69,9 @@ A0 27 01 02 01 10 5A 87 	// 8 byte Header stuff, 0x27 is frame length
 E6 E7 00 0F 			    // 4 byte LSAP LLC stuff
 40 00 00 00 			    // 4 byte unknown
 
-09 0C 			09      // "now comes a string of length.." 0C = 12 B
-07E1 09 0E 04 14 00 08 FF 80 00 00	// the 12 bytes string
-// yyyy mm dd nn	hhmmss ?? ?? ?? ??	(the first eight are a timestamp)
+09 0C 			      // "now comes a string of length.." 0C = 12 B
+07 E1 09 0E 04 14 00 08 FF 80 00 00	// the 12 bytes string
+// yyyy mm dd nn hhmmss ms FF 	Timestamp with last byte always FF
 // 2017 09 14 thu 20:00:08
  
 02 01 			//  "now comes one byte:"  01, but what is it?
@@ -131,10 +133,9 @@ D3 4F, 7E    					// checksum?,  EOF
 
 ## What's left?
 ### Known issues
-* Lists of types 2 and 3 are currently not properly detected. Effectively, the energy values and the power->out are never updated
-* The MQTT discovery in HA doesn't work for me (but the MQTT payloads from AVR-IoT arrive at the broker, and can be read from there)
-
-For now, this is what I add in my `configuration.yaml` (you'll need to change the mac address to the actual one of your AVR-IoT board):
+* When the Wifi is lost after having a successful connection, the device doesn't attempt to reconnect. Pity if you have scheduled router resets like I do.
+* Lists of types 2 and 3 are currently not properly detected outside my home: the values of byte #3 you see in the code today were found manually, for _my_ meter. If you don't adapt these, your energy values and the power->out value are never updated for you.
+* The MQTT discovery in HA doesn't work for me - but the MQTT payloads from AVR-IoT do arrive at the broker, and can be read from there by HA. For now, this is what I add in my `configuration.yaml` (you'll need to change the mac address to the actual one of your AVR-IoT board):
 
 ```
 mqtt:                                                                                                                                  
@@ -153,19 +154,17 @@ mqtt:
      value_template: "{{ value | int }}"                                                                                               
    - name: "HAN Energy Import"                                                                                                         
      state_topic: "aha/cce7aa05f0f8/iotHANSensorEnergyIn/stat_t"                                                                       
-     unit_of_measurement: "W"                                                                                                          
+     unit_of_measurement: "Wh"                                                                                                          
      device_class: "energy"                                                                                                            
-     state_class: "measurement"                                                                                                        
+     state_class: "total_increasing"                                                                                                        
      value_template: "{{ value | int }}"                                                                                               
    - name: "HAN Energy Export"                                                                                                         
      state_topic: "aha/cce7aa05f0f8/iotHANSensorEnergyOut/stat_t"                                                                      
-     unit_of_measurement: "W"                                                                                                          
+     unit_of_measurement: "Wh"                                                                                                          
      device_class: "energy"                                                                                                            
-     state_class: "measurement"                                                                                                        
+     state_class: "total_inreasing"                                                                                                        
      value_template: "{{ value | int }}" 
 ```
 
-### Features to do
+### To do
 * Fix known issues
-* Add List type 3 and add a sensor "cumultative active import energy" - aka. "power meter reading" 
-* Add list type 2 for gapless surveillance
