@@ -94,6 +94,7 @@ HALight displaySettings("iotClockDisplay", HALight::RGBFeature + HALight::Bright
 HASwitch displayBlink("iotClockBlink");
 unsigned long lastUpdateAt = 0;
 
+bool WiFiConnect();
 void onDisplayBlinkCommand(bool state, HASwitch* sender);
 void onDisplayStateCommand(bool state, HALight* sender);
 void onBrightnessCommand(uint8_t brightness, HALight* sender);
@@ -142,23 +143,10 @@ void setup()
   }
 #endif
 
-  // Attempt to connect to WiFi network:
-  while (status != WL_CONNECTED)
+  while (!WiFiConnect())
   {
-    SerialCOM_PRINT("Attempting to connect WiFi: ");
-    SerialCOM_PRINTLN(ssid);
-    status = WiFi.begin(ssid, pass);
-
-    if (status == WL_CONNECTED)
-    {
-      SerialCOM_PRINTLN("WINC1510 online");
-      digitalWrite(LED_WIFI, LOW);
-    }
-    else
-    {
-      // wait 10 seconds for connection:
-      delay(10000);
-    }
+    // wait 10 seconds for connection
+    delay(10000);
   }
 
   // Set Home Assistant device details
@@ -235,6 +223,12 @@ void loop() {
     digitalWrite(LED_WIFI, HIGH);
     digitalWrite(LED_CONN, HIGH);
     digitalWrite(LED_ERROR, LOW); // Indicate error if WiFi has been disconnected
+
+    while (!WiFiConnect())
+    {
+      // wait 10 seconds for reconnection
+      delay(10000);
+    }
   }
 
   // TODO: Add display on/off on PIN_SW1
@@ -279,6 +273,20 @@ void loop() {
 
     matrix->show();
   }
+}
+
+bool WiFiConnect() {
+  SerialCOM_PRINT("Attempting to connect WiFi: ");
+  SerialCOM_PRINTLN(ssid);
+  status = WiFi.begin(ssid, pass);
+
+  if (status == WL_CONNECTED)
+  {
+    SerialCOM_PRINTLN("WINC1510 online");
+    digitalWrite(LED_WIFI, LOW);
+  }
+
+  return status == WL_CONNECTED;
 }
 
 void onDisplayBlinkCommand(bool state, HASwitch* sender)
