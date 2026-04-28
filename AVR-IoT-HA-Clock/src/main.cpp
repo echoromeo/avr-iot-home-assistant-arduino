@@ -122,7 +122,7 @@ void setup()
   matrix->begin();
   matrix->setFont(&Font6x9_clock); // Set the font
   matrix->setTextWrap(false);
-  matrix->setBrightness(70);
+  matrix->setBrightness(30);
   matrix->setTextColor(matrix->Color(100, 0, 0),0); // Set initial color
   matrix->show();
 
@@ -159,6 +159,8 @@ void setup()
   device.setUniqueId(mac, sizeof(mac));
   device.setName("AVR-IoT Clock");
   device.setSoftwareVersion("1.0.0");
+  device.setManufacturer("Microchip");
+  device.enableExtendedUniqueIds();
 
   // Configure Home Assistant sensors
   displaySettings.setName("Display");
@@ -166,7 +168,6 @@ void setup()
 
   // Maximum brightness level can be changed as follows:
   displaySettings.setBrightnessScale(30);
-  matrix->setBrightness(30);
 
   // Optionally you can enable optimistic mode for the HALight.
   // In this mode you won't need to report state back to the HA when commands are executed.
@@ -187,13 +188,19 @@ void setup()
   displayBlink.onCommand(onDisplayBlinkCommand);
 
   // Connect to Home Assistant MQTT broker  
-  mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
+  while (!mqtt.begin(SECRET_BROKER, ha_user, ha_pass))
+  {
+    digitalWrite(LED_ERROR, LOW); // Indicate error
+    delay(10000);
+  }
+  digitalWrite(LED_ERROR, HIGH); // No error
 }
 
 void loop() {
 
   // Check if WiFi is connected
-  if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
+  status = WiFi.status();
+  if (status == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
   {
 	  digitalWrite(LED_WIFI, LOW);
     mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
