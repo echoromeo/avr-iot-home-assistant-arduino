@@ -149,14 +149,11 @@ void setup()
     delay(10000);
   }
 
-  // Set Home Assistant device details
-  byte mac_reverse[6];   
-  WiFi.macAddress(mac_reverse);
-  for (uint8_t i = 0; i < 6; i++)
-  {
-    mac[i] = mac_reverse[5-i];
-  }
+  // Use mac address as the mandatory unique ID
+  WiFi.macAddress(mac);
   device.setUniqueId(mac, sizeof(mac));
+
+  // Set Home Assistant device details
   device.setName("AVR-IoT Clock");
   device.setSoftwareVersion("1.0.0");
   device.setManufacturer("Microchip");
