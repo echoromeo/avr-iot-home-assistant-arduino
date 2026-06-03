@@ -13,7 +13,8 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <WiFi101.h>
-#include <ArduinoHA.h>
+//#include <ArduinoHA.h>
+#include <PubSubClient.h>
 #include "Adafruit_MCP9808.h"
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
@@ -27,17 +28,22 @@ int status = WL_IDLE_STATUS;
 
 // MQTT device stuff 
 byte mac[6];                        // to be filled with actual MAC address
-char ha_user[] = SECRET_HA_USER;    // the device homeassistant (mqtt) username
-char ha_pass[] = SECRET_HA_PASS;    // the device homeassistant (mqtt) password
-HADevice device;                    // use in setup()
-HAMqtt mqtt(client, device);        // use in setup()
+//char ha_user[] = SECRET_HA_USER;    // the device homeassistant (mqtt) username
+//char ha_pass[] = SECRET_HA_PASS;    // the device homeassistant (mqtt) password
+//HADevice device;                    // use in setup()
+//HAMqtt mqtt(client, device);        // use in setup()
+
+const char* topic1 ="Haus/cce7aa05f0f8/iotHANSensorPowerPlus/stat_t";
+const char* topic2 ="Haus/cce7aa05f0f8/iotHANSensorPowerMinus/stat_t";
+
+PubSubClient PSclient(client);
 
 // Home Assistant entities stuff
 // "iotLightSensor" and "iotTempSensor" are unique IDs of the sensors
-HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
-HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
-HANumber powerPlus("iotHANSensorPowerPlus");
-HANumber powerMinus("iotHANSensorPowerMinus");
+//HASensorNumber brightnessSensor("iotLightSensor", HASensorNumber::PrecisionP0);
+//HASensorNumber temperatureSensor("iotTempSensor", HASensorNumber::PrecisionP1);
+//HANumber powerPlus("iotHANSensorPowerPlus");
+//HANumber powerMinus("iotHANSensorPowerMinus");
 
 Adafruit_MCP9808 mcp9808 = Adafruit_MCP9808();
 unsigned long lastUpdateAt = 0;
@@ -107,31 +113,35 @@ void setup()
 
   // Set Home Assistant device details
   WiFi.macAddress(mac);
-  device.setUniqueId(mac, sizeof(mac));
-  device.setName("AVR-IoT LED Power Bar");
-  device.setSoftwareVersion("1.0.0");
+  //device.setUniqueId(mac, sizeof(mac));
+  //device.setName("AVR-IoT LED Power Bar");
+  //device.setSoftwareVersion("1.0.0");
   
   // Configure Home Assistant sensors
-  brightnessSensor.setIcon("mdi:brightness-percent");
-  brightnessSensor.setName("Brightness");
-  brightnessSensor.setUnitOfMeasurement("%");
+  //brightnessSensor.setIcon("mdi:brightness-percent");
+  //brightnessSensor.setName("Brightness");
+  //brightnessSensor.setUnitOfMeasurement("%");
   
-  temperatureSensor.setIcon("mdi:thermometer");
-  temperatureSensor.setName("Temperature");
-  temperatureSensor.setUnitOfMeasurement("°C");
+  //temperatureSensor.setIcon("mdi:thermometer");
+  //temperatureSensor.setName("Temperature");
+  //temperatureSensor.setUnitOfMeasurement("°C");
   
   // Connect to Home Assistant MQTT broker  
-  mqtt.setDiscoveryPrefix("homeassistant");
-  mqtt.setDataPrefix("Haus");
-  mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
+  //mqtt.setDiscoveryPrefix("homeassistant");
+  //mqtt.setDataPrefix("Haus");
+  //mqtt.begin(SECRET_BROKER, ha_user, ha_pass);
+  PSclient.setServer(SECRET_BROKER,1883);
+  PSclient.setCallback(callback);
+  connectMqtt();
+
 
   //Initialize with non-zero values, just to make sure the data comes through  
   tv.activePlus = 1;    // importing
   tv.activeMinus = 1;   // exporting/selling
 
   
-  powerPlus.onCommand(onPowerPlusChanged); 
-  powerMinus.onCommand(onPowerMinusChanged); 
+  //powerPlus.onCommand(onPowerPlusChanged); 
+  //powerMinus.onCommand(onPowerMinusChanged); 
 
   //LED stuff
  
@@ -143,26 +153,34 @@ void setup()
 
 void loop() {
 
-//const char topic ="Haus/cce7aa05f0f8/iotHANSensorPowerPlus";
+
 //uint16_t payload = 111;
   // Check if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) //TODO: No need for similar to Ethernet.maintain()?
   {
 	  digitalWrite(LED_WIFI, LOW);
-    mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
-    
+    //mqtt.loop(); // This maintains the mqtt connection and reconnects (and sends data)
+    if (!PSclient.connected()){
+       digitalWrite(LED_CONN, HIGH);
+      connectMqtt();
+
+    } 
+
     // Check if MQTT is connected
-    if (mqtt.isConnected())
+    //if (mqtt.isConnected())
+    if(PSclient.connected())
     {
       digitalWrite(LED_CONN, LOW);
+      PSclient.loop();
       
       
       // Update sensor data every 10 seconds
       if ((millis() - lastUpdateAt) > 10000) {
           digitalWrite(LED_DATA, LOW);
+          
           //send MQTT packages
-          brightnessSensor.setValue(readLightPct());
-          temperatureSensor.setValue(mcp9808.readTempC());
+       //   brightnessSensor.setValue(readLightPct());
+        //  temperatureSensor.setValue(mcp9808.readTempC());
 
           //write LEDs from topic data
           energyStatusBar(tv.activePlus, tv.activeMinus);
@@ -253,20 +271,43 @@ void printWiFiStatus() {
   DBG_PRINTLN(" dBm");
 }
 
+void callback(char* topicBuf, byte* payload, unsigned int length) {
+  // Identify topic
+  if (strcmp(topicBuf, topic1) != 0 && strcmp(topicBuf, topic2) != 0) return;
 
+  // Limit buffer size to avoid overflow (adjust size if needed)
+  const unsigned int BUF_SZ = 32;
+  char buf[BUF_SZ];
+  unsigned int n = length < (BUF_SZ - 1) ? length : (BUF_SZ - 1);
+  memcpy(buf, payload, n);
+  buf[n] = '\0'; // null-terminate
 
-void onPowerPlusChanged(HANumeric val){
-    DBG_PRINT("PowerPlus changed to: ");
-    DBG_PRINTLN(val.toInt16());
-    tv.activePlus = val.toInt16();
+  // Print using DBG_PRINT macros (or Serial if you prefer)
+  DBG_PRINT("Topic: "); DBG_PRINTLN(topicBuf);
+  DBG_PRINT("Payload (ASCII): "); DBG_PRINTLN(buf);
 }
 
-void onPowerMinusChanged(HANumeric val){
-    DBG_PRINT("PowerMinus changed to: ");
-    DBG_PRINTLN(val.toInt16());
-    tv.activeMinus = val.toInt16();
-}
 
+void connectMqtt() {
+  while (!PSclient.connected()) {
+    DBG_PRINTLN("Connecting MQTT...");
+    if (PSclient.connect("arduinoClient", SECRET_HA_USER, SECRET_HA_PASS)) {
+      DBG_PRINTLN("connected");
+      PSclient.subscribe(topic1);
+      DBG_PRINT("Subscribed to: ");
+      DBG_PRINTLN(topic1);
+      PSclient.subscribe(topic2);
+      DBG_PRINT("Subscribed to: ");
+      DBG_PRINTLN(topic2);
+      DBG_PRINT("MQTT connected? ");
+      DBG_PRINTLN(PSclient.connected());  //print some bool
+    } else {
+      DBG_PRINT("failed, rc=");
+      DBG_PRINTLN(PSclient.state());
+      delay(2000);
+    }
+  }
+}
 
 void energyStatusBar(int16_t importPower, int16_t exportPower){
    strip.clear();
