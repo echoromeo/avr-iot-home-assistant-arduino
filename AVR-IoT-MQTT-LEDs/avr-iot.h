@@ -13,25 +13,25 @@
 #define LED_CONN          LED_GREEN
 #define LED_WIFI          LED_BLUE
 
-// Swtches - Need internal pullup
-#define PIN_SW0           (PIN_PF6) // Only if Tools->Reset pin: "GPIO"
-#define PIN_SW1           (PIN_PF5)
+// Switches - Need internal pullup
+// #define PIN_SW0           (PIN_PF6) // Only if Tools->Reset pin: "GPIO"
+// #define PIN_SW1           (PIN_PF5)
 
 // I2C/TWI
-#define PIN_I2C_SDA       (PIN_PA2)
-#define PIN_I2C_SCL       (PIN_PA3)
+// #define PIN_I2C_SDA       (PIN_PA2)
+// #define PIN_I2C_SCL       (PIN_PA3)
 
 // SPI
-//#define PIN_SPI_MOSI      (PIN_PA4)
-//#define PIN_SPI_MISO      (PIN_PA5)
-//#define PIN_SPI_SCK       (PIN_PA6)
+// #define PIN_SPI_MOSI      (PIN_PA4)
+// #define PIN_SPI_MISO      (PIN_PA5)
+// #define PIN_SPI_SCK       (PIN_PA6)
 
-// USART COM Port
+// USART COM Port for terminal comm.
 #define SerialCOM         Serial2
 #define PIN_CDC_RX        
 #define PIN_CDC_TX        
 
-// (Re-)defines as per mikroBus silkscreen
+/* // (Re-)defines as per mikroBus silkscreen
 #define SerialClick       Serial1
 #define PIN_AN            (PIN_PD7)
 #define PIN_RST           (PIN_PA0)
@@ -45,6 +45,7 @@
 #define PIN_TX            (PIN_PC0) //UART1 TX 
 #define PIN_SCL           PIN_I2C_SCL
 #define PIN_SDA           PIN_I2C_SDA
+*/
 
 // WINC1500 (SPI)
 #define PIN_WIFI_CS       (PIN_PA7)
@@ -52,6 +53,7 @@
 #define PIN_WIFI_RST      (PIN_PA1)
 #define PIN_WIFI_EN       (PIN_PF3)
 
+/*
 // TEMT6000
 #define PIN_LIGHT_SENSOR  (PIN_PD5) 
 float readLightPct(void) {
@@ -61,6 +63,7 @@ float readLightPct(void) {
 // MCP9808
 #define ADDRESS_I2C_MCP9808 0x18
 #define PIN_MCP9808_ALERT   (PIN_PC2)
+*/
 
 // ATECC608A
 #define ADDRESS_I2C_ATECC608A  0x58
@@ -69,7 +72,7 @@ float readLightPct(void) {
 
 
 // Turn on/off SerialCOM for debugging/deployment
-#define DEBUG_SERIAL 0   // 1: send terminal messages; 0: quiet for deployment
+#define DEBUG_SERIAL 1   // 1: send terminal messages; 0: quiet for deployment
 
 #if DEBUG_SERIAL
   #define DBG_BEGIN(x)      SerialCOM.begin(x)

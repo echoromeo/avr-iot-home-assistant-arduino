@@ -8,14 +8,9 @@
   * Adafruit NeoPixel by Adafruit
 
  */
-//#define SERIAL_RX_BUFFER_SIZE 256 // increase from default 64, so Serial1 will cope better with long lists from the HAN port
 
-#include <Wire.h>
-#include <SPI.h>
 #include <WiFi101.h>
-//#include <ArduinoHA.h>
 #include <PubSubClient.h>
-//#include "Adafruit_MCP9808.h"
 #include "avr-iot.h"
 #include "arduino_secrets.h" 
 #include <Adafruit_NeoPixel.h>
@@ -33,23 +28,22 @@ const char* topicPlus ="Haus/cce7aa05f0f8/iotHANSensorPowerPlus/stat_t";   //Top
 const char* topicMinus ="Haus/cce7aa05f0f8/iotHANSensorPowerMinus/stat_t";  //Topic with the export power
 PubSubClient PSclient(client); 
 
-// The payload, to be read from the MQTT broker 
 struct topicValues {
     uint16_t activePlus;
     uint16_t activeMinus;
 //    uint32_t energyImport;
 //    uint32_t energyExport;
 };
-volatile topicValues tv;
+volatile topicValues tv;      // The payloads in numeric form
 
 //LED Indicator Bar definition
-unsigned long lastUpdateAt = 0;
 Adafruit_NeoPixel strip(
   LED_COUNT,
   LED_PIN,
   NEO_GRB + NEO_KHZ800      //this may need adoption to your actual strip of LEDs
 );
 
+unsigned long lastUpdateAt = 0; //For the refresh loop
 
 void setup()
 {
@@ -91,7 +85,8 @@ void setup()
   strip.begin();           
   strip.setBrightness(80); // 0–255
   strip.show();            // Turn all LEDs off
-    // Draw full bar
+  
+  // Draw full purple bar, as POST
   for (uint8_t i = 0; i < LED_COUNT; i++) {
     strip.setPixelColor(i, strip.Color(120, 120, 0));
   }
@@ -113,22 +108,16 @@ void loop() {
     if(PSclient.connected())
     {
       digitalWrite(LED_CONN, LOW);
-      PSclient.loop();
+      PSclient.loop();      // A push from the broker will populate the topic values tv
             
-      // Update LED bar every 10 seconds
-      if ((millis() - lastUpdateAt) > 10000) {
+      if ((millis() - lastUpdateAt) > 10000) { // Update LED bar every 10 seconds
           digitalWrite(LED_DATA, LOW);
-          
-          // make topics' char to tv's uint16s 
-
           energyStatusBar(tv.activePlus, tv.activeMinus); //write LEDs
-    
           lastUpdateAt = millis();
-    
           digitalWrite(LED_DATA, HIGH);
       }
     }
-    else // !mqtt.isConnected()
+    else // PSclient.connected() false
     {
         digitalWrite(LED_CONN, HIGH);
     }
@@ -269,16 +258,15 @@ void connectMqtt() {
 }
 
 void energyStatusBar(int16_t importPower, int16_t exportPower){
-   strip.clear();
+  strip.clear();
 
   uint32_t barColor = 0;
   int16_t value = 0;
   int16_t maxValue = 1;
 
   // -------- MODE SELECTION --------
-  if (importPower > 0 && exportPower == 0) {
-    // Clamp
-    importPower = constrain(importPower, 0, IMPORT_MAX);
+  if (importPower > 0 && exportPower == 0) {      //Importing power
+    importPower = constrain(importPower, 0, IMPORT_MAX);  // Clamp
     value = importPower;
     maxValue = IMPORT_MAX;
 
@@ -296,8 +284,7 @@ void energyStatusBar(int16_t importPower, int16_t exportPower){
       barColor = strip.Color(120, 0, 0);       // Red
     }
   }
-  else if (importPower == 0 && exportPower > 0) {
-    // EXPORT MODE - hiding the simultaneous import, if any
+  else if (importPower == 0 && exportPower > 0) {  // Exporting
     exportPower = constrain(exportPower, 0, EXPORT_MAX);
     value = exportPower;
     maxValue = EXPORT_MAX;
