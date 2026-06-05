@@ -17,7 +17,9 @@ If this can help you to stay under the next threshold/price step for a couple of
     * Subscribe to an MQTT Broker that's brokering relevant topics (Use f.ex. AVR-IoT-HANSensor to provide that)
     * PA4 aka. pin 2 of the package, aka. pin 6 in Arduino's world, is addressing the LED bar
 * An LED strip of WS2812-type. The length isn't too important, I am using a strip with 25 (adjust `LED_COUNT` in the àvr-iot.h` to your system). 
-* Some power solution for the AVR-IoT (can be via the USB port or through the LiPo battery connector), and/or the LED stripe: The 5V pin of the AVR-IoT board can be used to power the LED only so much - you may want to run a dedicated supply line when using large stripes at high brightness.
+* Some power solution:
+    * The AVR-IoT can be via the USB port or through the LiPo battery connector. 
+    * The LED stripe can be powered through the 5V-pin of the mikroBus (see that the bridge next to it is closed). That pin can provide only so much power though, you may want to consider a separate supply line (common GND though).
 
 
 ### AVR-IoT-MQTT-LEDs.ino

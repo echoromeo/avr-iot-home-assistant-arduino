@@ -26,7 +26,7 @@ byte mac[6];  // to be filled with actual MAC address
 // MQTT device stuff
 const char* topicPlus = "Haus/cce7aa05f0f8/iotHANSensorPowerPlus/stat_t";    //Topic with the import power
 const char* topicMinus = "Haus/cce7aa05f0f8/iotHANSensorPowerMinus/stat_t";  //Topic with the export power
-PubSubClient PSclient(client);
+PubSubClient mqttClient(client);
 
 struct topicValues {
   uint16_t activePlus;
@@ -66,26 +66,25 @@ void setup() {
     PIN_WIFI_RST,
     PIN_WIFI_EN);
 
-
   // Attempt to connect to WiFi network:
   attemptWifiConnection();
 
   // Connect to MQTT broker
-  PSclient.setServer(SECRET_BROKER, 1883);
-  PSclient.setCallback(callback);
+  mqttClient.setServer(SECRET_BROKER, 1883);
+  mqttClient.setCallback(callback);
   //connectMqtt();
 
   //Initialize with non-zero values, just to make sure the data comes through
-  tv.activePlus = 1;   // importing
-  tv.activeMinus = 1;  // exporting/selling
+  //tv.activePlus = 0;   // importing
+  //tv.activeMinus = 600;  // exporting/selling
 
   //LED stuff
   strip.begin();
    strip.clear();             // Turn all LEDs off
    strip.setBrightness(50);  // 0–255
+   
 
 }
-
 
 void loop() {
   // Check if WiFi is connected
@@ -93,27 +92,24 @@ void loop() {
   {
     digitalWrite(LED_WIFI, LOW);
 
-    if (!PSclient.connected()) {
+    if (!mqttClient.connected()) {
       digitalWrite(LED_CONN, HIGH);
       connectMqtt();
     }
 
-    if (PSclient.connected()) {
+    if (mqttClient.connected()) {
       digitalWrite(LED_CONN, LOW);
-      PSclient.loop();  // A push from the broker will populate the topic values tv
+      mqttClient.loop();  // push from broker-> callback() populates the topic values tv
 
       if ((millis() - lastUpdateAt) > 10000) {  // Update LED bar every 10 seconds
         digitalWrite(LED_DATA, LOW);
-        //energyStatusBar(tv.activePlus, tv.activeMinus);  //write LEDs
-  
-        strip.setPixelColor(5, strip.Color(155, 155, 155));
-        strip.show();
+        energyStatusBar(tv.activePlus, tv.activeMinus);  //write LEDs
         DBG_PRINTLN("Yep, I'm fine");
         
         lastUpdateAt = millis();
         digitalWrite(LED_DATA, HIGH);
       }
-    } else  // PSclient.connected() false
+    } else  // mqttClient.connected() false
     {
       digitalWrite(LED_CONN, HIGH);
     }
@@ -210,35 +206,34 @@ void callback(char* topicBuf, byte* payload, unsigned int length) {
 
 
 void connectMqtt() {
-  while (!PSclient.connected()) {
+  while (!mqttClient.connected()) {
     DBG_PRINTLN("Connecting MQTT...");
-    if (PSclient.connect("arduinoClient", SECRET_HA_USER, SECRET_HA_PASS)) {
+    if (mqttClient.connect("arduinoClient", SECRET_HA_USER, SECRET_HA_PASS)) {
       DBG_PRINTLN("connected");
-      PSclient.subscribe(topicPlus);
+      mqttClient.subscribe(topicPlus);
       DBG_PRINT("Subscribed to: ");
       DBG_PRINTLN(topicPlus);
-      PSclient.subscribe(topicMinus);
+      mqttClient.subscribe(topicMinus);
       DBG_PRINT("Subscribed to: ");
       DBG_PRINTLN(topicMinus);
       DBG_PRINT("MQTT connected? ");
-      DBG_PRINTLN(PSclient.connected());  //print some bool
+      DBG_PRINTLN(mqttClient.connected());  //print some bool
     } else {
       DBG_PRINT("failed, rc=");
-      DBG_PRINTLN(PSclient.state());
+      DBG_PRINTLN(mqttClient.state());
       delay(2000);
     }
   }
 }
 
 void energyStatusBar(int16_t importPower, int16_t exportPower) {
-
-
+  //local variables; See avr-iot.h for general definitions
   uint32_t barColor = 0;
   int16_t value = 0;
   int16_t maxValue = 1;
 
   // -------- MODE SELECTION --------
-  if (importPower > 0 && exportPower == 0) {              //Importing power
+  if (importPower > 0 && exportPower == 0) {              //Importing
     importPower = constrain(importPower, 0, IMPORT_MAX);  // Clamp
     value = importPower;
     maxValue = IMPORT_MAX;
@@ -257,25 +252,25 @@ void energyStatusBar(int16_t importPower, int16_t exportPower) {
     exportPower = constrain(exportPower, 0, EXPORT_MAX);
     value = exportPower;
     maxValue = EXPORT_MAX;
-    barColor = strip.Color(0, 0, 120);  // Blue
-  } else {                              //Inconclusive data (e.g. importPower and exportPower > 0 due to async. timing): just refresh
+    barColor = strip.Color(0, 0, 80);  // Blue
+  } else {                              //Inconclusive data: just refresh
     strip.show();
     return;
   }
 
-  // Draw full bar
+  // Draw full bar according to mode selection
   for (uint8_t i = 0; i < LED_COUNT; i++) {
     strip.setPixelColor(i, barColor);
   }
   DBG_PRINT("importPower: ");
   DBG_PRINTLN(importPower);
-  //strip.show();
-
+  
   // Draw needle dot
   uint8_t needle = map(value, 0, maxValue, 0, LED_COUNT - 1);
-  strip.setPixelColor(needle, strip.Color(155, 155, 155));
-  strip.show();
-  
+  strip.setPixelColor(needle, strip.Color(155, 155, 155)); 
   DBG_PRINT("Needle LED position: ");
   DBG_PRINTLN(needle);
+
+  //write to LED_PIN
+  strip.show();
 }

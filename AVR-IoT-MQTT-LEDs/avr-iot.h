@@ -26,10 +26,7 @@
 // #define PIN_SPI_MISO      (PIN_PA5)
 // #define PIN_SPI_SCK       (PIN_PA6)
 
-// USART COM Port for terminal comm.
-#define SerialCOM         Serial2
-#define PIN_CDC_RX        
-#define PIN_CDC_TX        
+     
 
 /* // (Re-)defines as per mikroBus silkscreen
 #define SerialClick       Serial1
@@ -75,9 +72,15 @@ float readLightPct(void) {
 #define DEBUG_SERIAL 1   // 1: send terminal messages; 0: quiet for deployment
 
 #if DEBUG_SERIAL
+    // USART COM Port for terminal comm.
+  #define SerialCOM         Serial2
+  #define PIN_CDC_RX        
+  #define PIN_CDC_TX   
+  //print-to-terminal functions
   #define DBG_BEGIN(x)      SerialCOM.begin(x)
   #define DBG_PRINT(...)    SerialCOM.print(__VA_ARGS__)
   #define DBG_PRINTLN(...)  SerialCOM.println(__VA_ARGS__)
+
 #else
   #define DBG_BEGIN(x)
   #define DBG_PRINT(...)
@@ -85,9 +88,9 @@ float readLightPct(void) {
 #endif
 
 // LED Indicator Bar Definitions
-#define LED_PIN    6      // Use an Arduino pin number (e.g. PA4 → 6)
+#define LED_PIN    6      // Use an Arduino pin number (e.g. PA6 → 6)
 #define LED_COUNT  25
-
+// Thresholds
 constexpr int16_t IMPORT_MAX = 12000;
 constexpr int16_t EXPORT_MAX = 800;
 constexpr int16_t IMPORT_YELLOW = 5000;
