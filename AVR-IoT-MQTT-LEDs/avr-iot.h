@@ -89,7 +89,7 @@ float readLightPct(void) {
 
 // LED Indicator Bar Definitions
 #define LED_PIN    6      // Use an Arduino pin number (e.g. PA6 → 6)
-#define LED_COUNT  25
+#define LED_COUNT  24
 // Thresholds
 constexpr int16_t IMPORT_MAX = 12000;
 constexpr int16_t EXPORT_MAX = 800;

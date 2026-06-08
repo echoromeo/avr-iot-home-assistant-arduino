@@ -226,51 +226,50 @@ void connectMqtt() {
   }
 }
 
-void energyStatusBar(int16_t importPower, int16_t exportPower) {
-  //local variables; See avr-iot.h for general definitions
+
+void energyStatusBar(int16_t importPower, int16_t exportPower){
+  strip.clear();
+
   uint32_t barColor = 0;
   int16_t value = 0;
   int16_t maxValue = 1;
 
   // -------- MODE SELECTION --------
-  if (importPower > 0 && exportPower == 0) {              //Importing
+  if (importPower > 0 && exportPower == 0) {      //Importing power
     importPower = constrain(importPower, 0, IMPORT_MAX);  // Clamp
     value = importPower;
     maxValue = IMPORT_MAX;
 
     // Color selection
     if (importPower < IMPORT_YELLOW) {
-      barColor = strip.Color(120, 0, 0);  // Green
-    } else if (importPower < IMPORT_ORANGE) {
-      barColor = strip.Color(120, 120, 0);  // Yellow
-    } else if (importPower < IMPORT_RED) {
-      barColor = strip.Color(120, 80, 0);  // Orange
-    } else {
-      barColor = strip.Color(120, 0, 0);  // Red
+      barColor = strip.Color(0, 120, 0);       // Green
     }
-  } else if (importPower == 0 && exportPower > 0) {  // Exporting
+    else if (importPower < IMPORT_ORANGE) {
+      barColor = strip.Color(120, 120, 0);     // Yellow
+    }
+    else if (importPower < IMPORT_RED) {
+      barColor = strip.Color(180, 90, 0);     // Orange
+    }
+    else {
+      barColor = strip.Color(210, 0, 0);       // Red
+    }
+  }
+  else if (importPower == 0 && exportPower > 0) {  // Exporting
     exportPower = constrain(exportPower, 0, EXPORT_MAX);
     value = exportPower;
     maxValue = EXPORT_MAX;
-    barColor = strip.Color(0, 0, 80);  // Blue
-  } else {                              //Inconclusive data: just refresh
+    barColor = strip.Color(0, 0, 120);         // Blue
+  }
+  else {      //Inconclusive data (e.g. importPower and exportPower > 0 due to async. timing): just refresh
     strip.show();
     return;
   }
 
-  // Draw full bar according to mode selection
+  //draw bar and set needle dot on top
   for (uint8_t i = 0; i < LED_COUNT; i++) {
     strip.setPixelColor(i, barColor);
   }
-  DBG_PRINT("importPower: ");
-  DBG_PRINTLN(importPower);
-  
-  // Draw needle dot
   uint8_t needle = map(value, 0, maxValue, 0, LED_COUNT - 1);
-  strip.setPixelColor(needle, strip.Color(155, 155, 155)); 
-  DBG_PRINT("Needle LED position: ");
-  DBG_PRINTLN(needle);
-
-  //write to LED_PIN
+  strip.setPixelColor(needle, strip.Color(222, 222, 222));
   strip.show();
 }
