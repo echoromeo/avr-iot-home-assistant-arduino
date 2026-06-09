@@ -24,15 +24,13 @@ byte mac[6];  // to be filled with actual MAC address
 
 
 // MQTT device stuff
-const char* topicPlus = "Haus/cce7aa05f0f8/iotHANSensorPowerPlus/stat_t";    //Topic with the import power
-const char* topicMinus = "Haus/cce7aa05f0f8/iotHANSensorPowerMinus/stat_t";  //Topic with the export power
+const char* topicPlus = TOPIC_IMPORT;   //Topic with the import power
+const char* topicMinus = TOPIC_EXPORT;  //Topic with the export power
 PubSubClient mqttClient(client);
 
 struct topicValues {
   uint16_t activePlus;
   uint16_t activeMinus;
-  //    uint32_t energyImport;
-  //    uint32_t energyExport;
 };
 volatile topicValues tv;  // The payloads in numeric form
 
@@ -72,18 +70,10 @@ void setup() {
   // Connect to MQTT broker
   mqttClient.setServer(SECRET_BROKER, 1883);
   mqttClient.setCallback(callback);
-  //connectMqtt();
-
-  //Initialize with non-zero values, just to make sure the data comes through
-  //tv.activePlus = 0;   // importing
-  //tv.activeMinus = 600;  // exporting/selling
 
   //LED stuff
   strip.begin();
    strip.clear();             // Turn all LEDs off
-   strip.setBrightness(50);  // 0–255
-   
-
 }
 
 void loop() {
@@ -99,7 +89,7 @@ void loop() {
 
     if (mqttClient.connected()) {
       digitalWrite(LED_CONN, LOW);
-      mqttClient.loop();  // push from broker-> callback() populates the topic values tv
+      mqttClient.loop();  // push from broker: callback() populates the values in tv
 
       if ((millis() - lastUpdateAt) > 10000) {  // Update LED bar every 10 seconds
         digitalWrite(LED_DATA, LOW);
@@ -210,12 +200,16 @@ void connectMqtt() {
     DBG_PRINTLN("Connecting MQTT...");
     if (mqttClient.connect("arduinoClient", SECRET_HA_USER, SECRET_HA_PASS)) {
       DBG_PRINTLN("connected");
+      
+      //Subscribe
       mqttClient.subscribe(topicPlus);
       DBG_PRINT("Subscribed to: ");
       DBG_PRINTLN(topicPlus);
       mqttClient.subscribe(topicMinus);
       DBG_PRINT("Subscribed to: ");
       DBG_PRINTLN(topicMinus);
+
+      // Debug
       DBG_PRINT("MQTT connected? ");
       DBG_PRINTLN(mqttClient.connected());  //print some bool
     } else {
@@ -228,8 +222,7 @@ void connectMqtt() {
 
 
 void energyStatusBar(int16_t importPower, int16_t exportPower){
-  strip.clear();
-
+  
   uint32_t barColor = 0;
   int16_t value = 0;
   int16_t maxValue = 1;
@@ -260,8 +253,8 @@ void energyStatusBar(int16_t importPower, int16_t exportPower){
     maxValue = EXPORT_MAX;
     barColor = strip.Color(0, 0, 120);         // Blue
   }
-  else {      //Inconclusive data (e.g. importPower and exportPower > 0 due to async. timing): just refresh
-    strip.show();
+  else {      //Inconclusive data (e.g. importPower and exportPower > 0 due to async. timing)
+    value=0;
     return;
   }
 

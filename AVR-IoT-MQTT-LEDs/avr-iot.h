@@ -13,35 +13,45 @@
 #define LED_CONN          LED_GREEN
 #define LED_WIFI          LED_BLUE
 
-// Switches - Need internal pullup
-// #define PIN_SW0           (PIN_PF6) // Only if Tools->Reset pin: "GPIO"
-// #define PIN_SW1           (PIN_PF5)
 
-// I2C/TWI
-// #define PIN_I2C_SDA       (PIN_PA2)
-// #define PIN_I2C_SCL       (PIN_PA3)
+/* unused defines, for your convenience later
+  // Switches - Need internal pullup
+  #define PIN_SW0           (PIN_PF6) // Only if Tools->Reset pin: "GPIO"
+  #define PIN_SW1           (PIN_PF5)
 
-// SPI
-// #define PIN_SPI_MOSI      (PIN_PA4)
-// #define PIN_SPI_MISO      (PIN_PA5)
-// #define PIN_SPI_SCK       (PIN_PA6)
+  // I2C/TWI
+  #define PIN_I2C_SDA       (PIN_PA2)
+  #define PIN_I2C_SCL       (PIN_PA3)  // note this is currently used by the LED bar
 
-     
+  // SPI
+  #define PIN_SPI_MOSI      (PIN_PA4)
+  #define PIN_SPI_MISO      (PIN_PA5)
+  #define PIN_SPI_SCK       (PIN_PA6)
 
-/* // (Re-)defines as per mikroBus silkscreen
-#define SerialClick       Serial1
-#define PIN_AN            (PIN_PD7)
-#define PIN_RST           (PIN_PA0)
-#define PIN_CS            (PIN_PC3)
-#define PIN_SCK           PIN_SPI_SCK
-#define PIN_SDO           PIN_SPI_MOSI
-#define PIN_SDI           PIN_SPI_MISO
-#define PIN_PWM           (PIN_PD4)
-#define PIN_INT           (PIN_PD6)
-#define PIN_RX            (PIN_PC1) //UART1 RX 
-#define PIN_TX            (PIN_PC0) //UART1 TX 
-#define PIN_SCL           PIN_I2C_SCL
-#define PIN_SDA           PIN_I2C_SDA
+  // (Re-)defines as per mikroBus silkscreen
+  #define SerialClick       Serial1
+  #define PIN_AN            (PIN_PD7)
+  #define PIN_RST           (PIN_PA0)
+  #define PIN_CS            (PIN_PC3)
+  #define PIN_SCK           PIN_SPI_SCK
+  #define PIN_SDO           PIN_SPI_MOSI
+  #define PIN_SDI           PIN_SPI_MISO
+  #define PIN_PWM           (PIN_PD4)
+  #define PIN_INT           (PIN_PD6)
+  #define PIN_RX            (PIN_PC1) //UART1 RX 
+  #define PIN_TX            (PIN_PC0) //UART1 TX 
+  #define PIN_SCL           PIN_I2C_SCL
+  #define PIN_SDA           PIN_I2C_SDA
+
+  // TEMT6000
+  #define PIN_LIGHT_SENSOR  (PIN_PD5) 
+  float readLightPct(void) {
+    //Get percent of maximum value (1023)
+    return analogRead(PIN_LIGHT_SENSOR) * 100.f / 1023.f;
+  }
+  // MCP9808
+  #define ADDRESS_I2C_MCP9808 0x18
+  #define PIN_MCP9808_ALERT   (PIN_PC2)
 */
 
 // WINC1500 (SPI)
@@ -49,18 +59,6 @@
 #define PIN_WIFI_IRQ      (PIN_PF2)
 #define PIN_WIFI_RST      (PIN_PA1)
 #define PIN_WIFI_EN       (PIN_PF3)
-
-/*
-// TEMT6000
-#define PIN_LIGHT_SENSOR  (PIN_PD5) 
-float readLightPct(void) {
-  //Get percent of maximum value (1023)
-  return analogRead(PIN_LIGHT_SENSOR) * 100.f / 1023.f;
-}
-// MCP9808
-#define ADDRESS_I2C_MCP9808 0x18
-#define PIN_MCP9808_ALERT   (PIN_PC2)
-*/
 
 // ATECC608A
 #define ADDRESS_I2C_ATECC608A  0x58
