@@ -69,11 +69,11 @@ float readLightPct(void) {
 
 
 // Turn on/off SerialCOM for debugging/deployment
-#define DEBUG_SERIAL 1   // 1: send terminal messages; 0: quiet for deployment
+#define DEBUG_SERIAL 0   // 1: send terminal messages; 0: quiet for deployment
 
 #if DEBUG_SERIAL
     // USART COM Port for terminal comm.
-  #define SerialCOM         Serial2
+  #define SerialCOM         Serial1
   #define PIN_CDC_RX        
   #define PIN_CDC_TX   
   //print-to-terminal functions
@@ -88,7 +88,7 @@ float readLightPct(void) {
 #endif
 
 // LED Indicator Bar Definitions
-#define LED_PIN    6      // Use an Arduino pin number (e.g. PA6 → 6)
+#define LED_PIN    3      // Use an Arduino pin number (e.g. PA3 → 3)
 #define LED_COUNT  24
 // Thresholds
 constexpr int16_t IMPORT_MAX = 12000;
