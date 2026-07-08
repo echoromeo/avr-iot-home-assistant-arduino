@@ -4,7 +4,8 @@
 #define SECRET_SSID   ""
 #define SECRET_PASS   ""
 
-#define SECRET_BROKER    IPAddress(192,168,0,17)
+//MQTT Broker info  
+#define SECRET_BROKER    IPAddress(192,168,0,17)  // "hostname.local" would work instead of IPAddress()
 #define SECRET_HA_USER   ""
 #define SECRET_HA_PASS   ""
 
